@@ -52,9 +52,11 @@ export default function middleware(
         && !authObj.orgId
         && req.nextUrl.pathname.includes('/dashboard')
         && !req.nextUrl.pathname.endsWith('/organization-selection')
+        && !req.nextUrl.pathname.endsWith('/organization-profile')
       ) {
+        const locale = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';
         const orgSelection = new URL(
-          '/onboarding/organization-selection',
+          `${locale}/onboarding/organization-selection`,
           req.url,
         );
 

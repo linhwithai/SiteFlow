@@ -4,6 +4,7 @@ import { z } from 'zod';
 export const Env = createEnv({
   server: {
     CLERK_SECRET_KEY: z.string().min(1),
+    CLERK_WEBHOOK_SECRET: z.string().optional(),
     DATABASE_URL: z.string().optional(),
     LOGTAIL_SOURCE_TOKEN: z.string().optional(),
     STRIPE_SECRET_KEY: z.string().min(1),
@@ -22,6 +23,7 @@ export const Env = createEnv({
   // You need to destructure all the keys manually
   runtimeEnv: {
     CLERK_SECRET_KEY: process.env.CLERK_SECRET_KEY,
+    CLERK_WEBHOOK_SECRET: process.env.CLERK_WEBHOOK_SECRET,
     DATABASE_URL: process.env.DATABASE_URL,
     LOGTAIL_SOURCE_TOKEN: process.env.LOGTAIL_SOURCE_TOKEN,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,

@@ -1,63 +1,153 @@
-import { useTranslations } from 'next-intl';
+import { Building2, Calendar, FileText, Users } from 'lucide-react';
+import { getTranslations } from 'next-intl/server';
 
-import { MessageState } from '@/features/dashboard/MessageState';
-import { TitleBar } from '@/features/dashboard/TitleBar';
-import { SponsorLogos } from '@/features/sponsors/SponsorLogos';
+import { OrganizationInfo } from '@/components/OrganizationInfo';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-const DashboardIndexPage = () => {
-  const t = useTranslations('DashboardIndex');
+export async function generateMetadata(props: { params: { locale: string } }) {
+  const t = await getTranslations({
+    locale: props.params.locale,
+    namespace: 'Dashboard',
+  });
+
+  return {
+    title: 'Dashboard - SiteFlow',
+    description: 'Quản lý dự án xây dựng',
+  };
+}
+
+export default async function DashboardPage() {
+  const _t = await getTranslations('Dashboard');
 
   return (
-    <>
-      <TitleBar
-        title={t('title_bar')}
-        description={t('title_bar_description')}
-      />
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <div className="rounded-lg bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+        <h1 className="mb-2 text-2xl font-bold">
+          Chào mừng đến với SiteFlow
+        </h1>
+        <p className="text-blue-100">
+          Nền tảng quản lý dự án xây dựng thông minh cho các công ty Việt Nam
+        </p>
+      </div>
 
-      <MessageState
-        icon={(
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            fill="none"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M0 0h24v24H0z" stroke="none" />
-            <path d="M12 3l8 4.5v9L12 21l-8-4.5v-9L12 3M12 12l8-4.5M12 12v9M12 12L4 7.5" />
-          </svg>
-        )}
-        title={t('message_state_title')}
-        description={t.rich('message_state_description', {
-          code: chunks => (
-            <code className="bg-secondary text-secondary-foreground">
-              {chunks}
-            </code>
-          ),
-        })}
-        button={(
-          <>
-            <div className="mt-2 text-xs font-light text-muted-foreground">
-              {t.rich('message_state_alternative', {
-                url: () => (
-                  <a
-                    className="text-blue-500 hover:text-blue-600"
-                    href="https://nextjs-boilerplate.com/pro-saas-starter-kit"
-                  >
-                    Next.js Boilerplate SaaS
-                  </a>
-                ),
-              })}
-            </div>
+      {/* Organization Info */}
+      <OrganizationInfo />
 
-            <div className="mt-7">
-              <SponsorLogos />
+      {/* Quick Stats */}
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Dự án</CardTitle>
+            <Building2 className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground">
+              +0% so với tháng trước
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Daily Logs</CardTitle>
+            <FileText className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground">
+              +0% so với tháng trước
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Thành viên</CardTitle>
+            <Users className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground">
+              +0% so với tháng trước
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Hoạt động</CardTitle>
+            <Calendar className="size-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground">
+              +0% so với tháng trước
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Bắt đầu nhanh</CardTitle>
+            <CardDescription>
+              Các hành động phổ biến để quản lý dự án
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <Button className="w-full justify-start" variant="outline">
+              <Building2 className="mr-2 size-4" />
+              Tạo dự án mới
+            </Button>
+            <Button className="w-full justify-start" variant="outline">
+              <FileText className="mr-2 size-4" />
+              Tạo daily log
+            </Button>
+            <Button className="w-full justify-start" variant="outline">
+              <Users className="mr-2 size-4" />
+              Mời thành viên
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Dự án gần đây</CardTitle>
+            <CardDescription>
+              Các dự án bạn đang tham gia
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="py-8 text-center text-muted-foreground">
+              <Building2 className="mx-auto mb-4 size-12 opacity-50" />
+              <p>Chưa có dự án nào</p>
+              <p className="text-sm">Tạo dự án đầu tiên để bắt đầu</p>
             </div>
-          </>
-        )}
-      />
-    </>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Recent Activity */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Hoạt động gần đây</CardTitle>
+          <CardDescription>
+            Các hoạt động mới nhất trong tổ chức
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="py-8 text-center text-muted-foreground">
+            <Calendar className="mx-auto mb-4 size-12 opacity-50" />
+            <p>Chưa có hoạt động nào</p>
+            <p className="text-sm">Các hoạt động sẽ hiển thị ở đây</p>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
-};
-
-export default DashboardIndexPage;
+}
