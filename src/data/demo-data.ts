@@ -2,7 +2,7 @@
  * Demo data for Projects testing
  */
 
-import type { Project, ProjectStats } from '../src/types/Project';
+import type { Project, ProjectStats } from '../types/Project';
 
 export const demoProjects: Project[] = [
   {
