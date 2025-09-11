@@ -1,13 +1,7 @@
 import { OrganizationList } from '@clerk/nextjs';
 import { Building2, Users } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
 
-export async function generateMetadata(props: { params: { locale: string } }) {
-  const _t = await getTranslations({
-    locale: props.params.locale,
-    namespace: 'Dashboard',
-  });
-
+export async function generateMetadata(_props: { params: { locale: string } }) {
   return {
     title: 'Chọn Tổ Chức - SiteFlow',
     description: 'Chọn hoặc tạo tổ chức để quản lý dự án xây dựng',

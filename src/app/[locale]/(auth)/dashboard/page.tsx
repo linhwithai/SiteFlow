@@ -1,16 +1,10 @@
 import { Building2, Calendar, FileText, Users } from 'lucide-react';
-import { getTranslations } from 'next-intl/server';
 
 import { OrganizationInfo } from '@/components/OrganizationInfo';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
-export async function generateMetadata(props: { params: { locale: string } }) {
-  const t = await getTranslations({
-    locale: props.params.locale,
-    namespace: 'Dashboard',
-  });
-
+export async function generateMetadata(_props: { params: { locale: string } }) {
   return {
     title: 'Dashboard - SiteFlow',
     description: 'Quản lý dự án xây dựng',
@@ -18,8 +12,6 @@ export async function generateMetadata(props: { params: { locale: string } }) {
 }
 
 export default async function DashboardPage() {
-  const _t = await getTranslations('Dashboard');
-
   return (
     <div className="space-y-6">
       {/* Welcome Section */}

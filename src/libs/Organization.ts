@@ -6,7 +6,7 @@
  */
 
 import { auth } from '@clerk/nextjs/server';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 
 import { organizationSchema } from '@/models/Schema';
 
@@ -17,7 +17,7 @@ import { db } from './DB';
  */
 export async function getCurrentOrganizationId(): Promise<string | null> {
   const { orgId } = await auth();
-  return orgId;
+  return orgId || null;
 }
 
 /**
@@ -114,7 +114,7 @@ export async function hasOrganizationAccess(organizationId: string): Promise<boo
  */
 export async function hasOrganizationRole(
   organizationId: string,
-  requiredRole: 'org:owner' | 'org:admin' | 'org:member',
+  _requiredRole: 'org:owner' | 'org:admin' | 'org:member',
 ): Promise<boolean> {
   // This would typically check against Clerk's organization membership
   // For now, we'll implement a basic check
@@ -148,16 +148,18 @@ export async function getUserOrganizations() {
  * Validate organization slug uniqueness
  */
 export async function isOrganizationSlugUnique(slug: string, excludeId?: string): Promise<boolean> {
-  const query = db
-    .select({ id: organizationSchema.id })
-    .from(organizationSchema)
-    .where(eq(organizationSchema.slug, slug));
+  const conditions = [eq(organizationSchema.slug, slug)];
 
   if (excludeId) {
-    query.where(eq(organizationSchema.id, excludeId));
+    conditions.push(eq(organizationSchema.id, excludeId));
   }
 
-  const existing = await query.limit(1);
+  const existing = await db
+    .select({ id: organizationSchema.id })
+    .from(organizationSchema)
+    .where(and(...conditions))
+    .limit(1);
+
   return existing.length === 0;
 }
 

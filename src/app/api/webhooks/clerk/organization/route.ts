@@ -11,6 +11,7 @@ import { headers } from 'next/headers';
 import { Webhook } from 'svix';
 
 import { db } from '@/libs/DB';
+import { logger } from '@/libs/Logger';
 import { syncOrganizationWithClerk } from '@/libs/Organization';
 import { organizationSchema } from '@/models/Schema';
 
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
       'svix-signature': svix_signature,
     }) as WebhookEvent;
   } catch (err) {
-    console.error('Error verifying webhook:', err);
+    logger.error('Error verifying webhook:', err);
     return new Response('Error occured', {
       status: 400,
     });
@@ -66,12 +67,12 @@ export async function POST(req: Request) {
         await handleOrganizationDeleted(evt.data);
         break;
       default:
-        console.log(`Unhandled webhook event type: ${eventType}`);
+        logger.info(`Unhandled webhook event type: ${eventType}`);
     }
 
     return new Response('Webhook processed successfully', { status: 200 });
   } catch (error) {
-    console.error('Error processing webhook:', error);
+    logger.error('Error processing webhook:', error);
     return new Response('Error processing webhook', { status: 500 });
   }
 }
@@ -85,7 +86,7 @@ async function handleOrganizationCreated(data: any) {
     logo: image_url,
   });
 
-  console.log(`Organization created: ${id}`);
+  logger.info(`Organization created: ${id}`);
 }
 
 async function handleOrganizationUpdated(data: any) {
@@ -97,7 +98,7 @@ async function handleOrganizationUpdated(data: any) {
     logo: image_url,
   });
 
-  console.log(`Organization updated: ${id}`);
+  logger.info(`Organization updated: ${id}`);
 }
 
 async function handleOrganizationDeleted(data: any) {
@@ -112,7 +113,7 @@ async function handleOrganizationDeleted(data: any) {
     })
     .where(eq(organizationSchema.id, id));
 
-  console.log(`Organization deleted: ${id}`);
+  logger.info(`Organization deleted: ${id}`);
 }
 
 async function generateSlugFromName(name: string): Promise<string> {

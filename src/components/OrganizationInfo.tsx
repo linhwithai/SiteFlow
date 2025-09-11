@@ -85,10 +85,10 @@ export function OrganizationInfo({ className = '' }: OrganizationInfoProps) {
           </span>
         </div>
 
-        {organization.publicMetadata?.address && (
+        {!!organization.publicMetadata?.address && (
           <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <MapPin className="size-4" />
-            <span>{organization.publicMetadata.address as string}</span>
+            <span>{String(organization.publicMetadata.address)}</span>
           </div>
         )}
       </div>

@@ -18,7 +18,7 @@ type OrganizationSwitcherProps = {
 
 export function OrganizationSwitcher({ className = '' }: OrganizationSwitcherProps) {
   const { organization } = useOrganization();
-  const { organizationList, setActive } = useOrganizationList();
+  const { userMemberships, setActive } = useOrganizationList();
 
   if (!organization) {
     return (
@@ -55,12 +55,12 @@ export function OrganizationSwitcher({ className = '' }: OrganizationSwitcherPro
           </p>
         </div>
 
-        {organizationList?.map(org => (
+        {userMemberships?.data?.map((membership: any) => (
           <DropdownMenuItem
-            key={org.organization.id}
-            onClick={() => setActive({ organization: org.organization })}
+            key={membership.organization.id}
+            onClick={() => setActive?.({ organization: membership.organization })}
             className={`flex cursor-pointer items-center gap-2 ${
-              org.organization.id === organization.id
+              membership.organization.id === organization.id
                 ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
                 : ''
             }`}
@@ -69,13 +69,13 @@ export function OrganizationSwitcher({ className = '' }: OrganizationSwitcherPro
               <Building2 className="size-4 text-gray-600 dark:text-gray-400" />
             </div>
             <div className="min-w-0 flex-1">
-              <p className="truncate font-medium">{org.organization.name}</p>
+              <p className="truncate font-medium">{membership.organization.name}</p>
               <p className="truncate text-xs text-gray-500 dark:text-gray-400">
                 @
-                {org.organization.slug}
+                {membership.organization.slug}
               </p>
             </div>
-            {org.organization.id === organization.id && (
+            {membership.organization.id === organization.id && (
               <div className="size-2 rounded-full bg-blue-600"></div>
             )}
           </DropdownMenuItem>
