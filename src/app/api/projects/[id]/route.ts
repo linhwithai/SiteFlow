@@ -42,7 +42,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectId = parseInt(params.id, 10);
+    const projectId = Number.parseInt(params.id, 10);
 
     const [project] = await db
       .select()
@@ -83,7 +83,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectId = parseInt(params.id, 10);
+    const projectId = Number.parseInt(params.id, 10);
     const body = await request.json();
     const validatedData = updateProjectSchema.parse(body);
 
@@ -157,7 +157,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const projectId = parseInt(params.id, 10);
+    const projectId = Number.parseInt(params.id, 10);
 
     // Check if project exists and belongs to organization
     const [existingProject] = await db

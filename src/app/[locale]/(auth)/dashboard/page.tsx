@@ -105,6 +105,12 @@ export default async function DashboardPage() {
                 Quản lý dự án
               </Button>
             </Link>
+            <Link href="/dashboard/projects/demo">
+              <Button className="w-full justify-start" variant="outline">
+                <Building2 className="mr-2 size-4" />
+                Demo dự án (không cần DB)
+              </Button>
+            </Link>
             <Button className="w-full justify-start" variant="outline">
               <FileText className="mr-2 size-4" />
               Tạo daily log
