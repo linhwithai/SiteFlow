@@ -1,4 +1,5 @@
-import { Building2, Calendar, FileText, Users } from 'lucide-react';
+import { Building2, Calendar, FileText, PlusIcon, Users } from 'lucide-react';
+import Link from 'next/link';
 
 import { OrganizationInfo } from '@/components/OrganizationInfo';
 import { Button } from '@/components/ui/button';
@@ -92,10 +93,18 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Button className="w-full justify-start" variant="outline">
-              <Building2 className="mr-2 size-4" />
-              Tạo dự án mới
-            </Button>
+            <Link href="/dashboard/projects/new">
+              <Button className="w-full justify-start" variant="outline">
+                <PlusIcon className="mr-2 size-4" />
+                Tạo dự án mới
+              </Button>
+            </Link>
+            <Link href="/dashboard/projects">
+              <Button className="w-full justify-start" variant="outline">
+                <Building2 className="mr-2 size-4" />
+                Quản lý dự án
+              </Button>
+            </Link>
             <Button className="w-full justify-start" variant="outline">
               <FileText className="mr-2 size-4" />
               Tạo daily log

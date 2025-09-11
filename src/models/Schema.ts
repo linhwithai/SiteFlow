@@ -74,9 +74,9 @@ export const projectSchema = pgTable('project', {
     .references(() => organizationSchema.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   description: text('description'),
-  address: text('address').notNull(),
-  city: text('city').notNull(),
-  province: text('province').notNull(),
+  address: text('address'),
+  city: text('city'),
+  province: text('province'),
   // Project details
   startDate: timestamp('start_date', { mode: 'date' }),
   endDate: timestamp('end_date', { mode: 'date' }),
