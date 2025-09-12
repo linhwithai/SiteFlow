@@ -1,8 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CalendarIcon, MapPinIcon, UserIcon } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
@@ -10,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { PROJECT_STATUS } from '@/types/Enum';
 import type { CreateProjectRequest, Project, UpdateProjectRequest } from '@/types/Project';
 
@@ -35,13 +35,24 @@ type ProjectFormProps = {
   isLoading?: boolean;
 };
 
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+};
+
 export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: ProjectFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
 
   const {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
+    setValue,
   } = useForm<ProjectFormData>({
     resolver: zodResolver(projectFormSchema),
     defaultValues: {
@@ -58,11 +69,29 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
     },
   });
 
-  const handleFormSubmit = async (data: ProjectFormData) => {
-    try {
-      setIsSubmitting(true);
+  // Fetch users on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoadingUsers(true);
+        const response = await fetch('/api/users');
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data.users || []);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
 
-      // Convert form data to API format
+    fetchUsers();
+  }, []);
+
+  const handleFormSubmit = async (data: ProjectFormData) => {
+    setIsSubmitting(true);
+    try {
       const apiData: CreateProjectRequest | UpdateProjectRequest = {
         name: data.name,
         description: data.description || undefined,
@@ -72,75 +101,57 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
         startDate: data.startDate || undefined,
         endDate: data.endDate || undefined,
         budget: data.budget || undefined,
-        projectManagerId: data.projectManagerId || undefined,
+        projectManagerId: data.projectManagerId === 'none' ? undefined : data.projectManagerId || undefined,
         ...(project && { status: data.status }),
       };
 
       await onSubmit(apiData);
-    } catch (error) {
-      console.error('Error submitting form:', error);
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Card className="mx-auto w-full max-w-2xl">
+    <Card className="mx-auto max-w-2xl">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <UserIcon className="size-5" />
+        <CardTitle>
           {project ? 'Chỉnh sửa dự án' : 'Tạo dự án mới'}
         </CardTitle>
         <CardDescription>
           {project
-            ? 'Cập nhật thông tin dự án'
-            : 'Nhập thông tin để tạo dự án mới'}
+            ? 'Cập nhật thông tin dự án của bạn'
+            : 'Điền thông tin để tạo dự án mới'}
         </CardDescription>
       </CardHeader>
-
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Thông tin cơ bản</h3>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="name">Tên dự án *</Label>
-                <Input
-                  id="name"
-                  {...register('name')}
-                  placeholder="Nhập tên dự án"
-                  className={errors.name ? 'border-red-500' : ''}
-                />
-                {errors.name && (
-                  <p className="text-sm text-red-500">{errors.name.message}</p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="budget">Ngân sách (VNĐ)</Label>
-                <Input
-                  id="budget"
-                  type="number"
-                  {...register('budget', { valueAsNumber: true })}
-                  placeholder="Nhập ngân sách"
-                  className={errors.budget ? 'border-red-500' : ''}
-                />
-                {errors.budget && (
-                  <p className="text-sm text-red-500">{errors.budget.message}</p>
-                )}
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="name">Tên dự án *</Label>
+              <Input
+                id="name"
+                {...register('name')}
+                placeholder="Nhập tên dự án"
+                className={errors.name ? 'border-red-500' : ''}
+              />
+              {errors.name && (
+                <p className="text-sm text-red-500">{errors.name.message}</p>
+              )}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Mô tả dự án</Label>
+              <Label htmlFor="description">Mô tả</Label>
               <textarea
                 id="description"
                 {...register('description')}
                 placeholder="Mô tả chi tiết về dự án"
                 rows={3}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={`w-full rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 ${
+                  errors.description ? 'border-red-500' : ''
+                }`}
               />
               {errors.description && (
                 <p className="text-sm text-red-500">{errors.description.message}</p>
@@ -150,25 +161,9 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
 
           {/* Location Information */}
           <div className="space-y-4">
-            <h3 className="flex items-center gap-2 text-lg font-medium">
-              <MapPinIcon className="size-5" />
-              Thông tin địa điểm
-            </h3>
+            <h3 className="text-lg font-medium">Thông tin địa điểm</h3>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label htmlFor="address">Địa chỉ</Label>
-                <Input
-                  id="address"
-                  {...register('address')}
-                  placeholder="Nhập địa chỉ"
-                  className={errors.address ? 'border-red-500' : ''}
-                />
-                {errors.address && (
-                  <p className="text-sm text-red-500">{errors.address.message}</p>
-                )}
-              </div>
-
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="city">Thành phố</Label>
                 <Input
@@ -195,16 +190,26 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
                 )}
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Địa chỉ</Label>
+              <Input
+                id="address"
+                {...register('address')}
+                placeholder="Nhập địa chỉ chi tiết"
+                className={errors.address ? 'border-red-500' : ''}
+              />
+              {errors.address && (
+                <p className="text-sm text-red-500">{errors.address.message}</p>
+              )}
+            </div>
           </div>
 
           {/* Timeline */}
           <div className="space-y-4">
-            <h3 className="flex items-center gap-2 text-lg font-medium">
-              <CalendarIcon className="size-5" />
-              Thời gian dự án
-            </h3>
+            <h3 className="text-lg font-medium">Thời gian thực hiện</h3>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Ngày bắt đầu</Label>
                 <Input
@@ -233,18 +238,51 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
             </div>
           </div>
 
+          {/* Budget */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Ngân sách</h3>
+
+            <div className="space-y-2">
+              <Label htmlFor="budget">Ngân sách (VNĐ)</Label>
+              <Input
+                id="budget"
+                type="number"
+                {...register('budget', { valueAsNumber: true })}
+                placeholder="Nhập ngân sách dự án"
+                className={errors.budget ? 'border-red-500' : ''}
+              />
+              {errors.budget && (
+                <p className="text-sm text-red-500">{errors.budget.message}</p>
+              )}
+            </div>
+          </div>
+
           {/* Project Manager */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Quản lý dự án</h3>
 
             <div className="space-y-2">
-              <Label htmlFor="projectManagerId">ID Quản lý dự án</Label>
-              <Input
-                id="projectManagerId"
-                {...register('projectManagerId')}
-                placeholder="Nhập ID quản lý dự án"
-                className={errors.projectManagerId ? 'border-red-500' : ''}
-              />
+              <Label htmlFor="projectManagerId">Quản lý dự án</Label>
+              <Select
+                value={watch('projectManagerId') || 'none'}
+                onValueChange={value => setValue('projectManagerId', value)}
+              >
+                <SelectTrigger className={errors.projectManagerId ? 'border-red-500' : ''}>
+                  <SelectValue placeholder={isLoadingUsers ? 'Đang tải...' : 'Chọn quản lý dự án'} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Không chọn</SelectItem>
+                  {users.map(user => (
+                    <SelectItem key={user.id} value={user.id}>
+                      {user.name}
+                      {' '}
+                      (
+                      {user.role}
+                      )
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
               {errors.projectManagerId && (
                 <p className="text-sm text-red-500">{errors.projectManagerId.message}</p>
               )}
@@ -289,9 +327,9 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
             <Button
               type="submit"
               disabled={isSubmitting || isLoading}
-              className="min-w-[120px]"
+              className="min-w-[100px]"
             >
-              {isSubmitting ? 'Đang lưu...' : project ? 'Cập nhật' : 'Tạo dự án'}
+              {isSubmitting || isLoading ? 'Đang xử lý...' : project ? 'Cập nhật' : 'Tạo dự án'}
             </Button>
           </div>
         </form>

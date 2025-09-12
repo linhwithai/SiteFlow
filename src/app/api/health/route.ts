@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 
 export async function GET() {
   return NextResponse.json({ 
-    message: 'Test API is working!',
-    timestamp: new Date().toISOString()
+    status: 'ok', 
+    timestamp: new Date().toISOString(),
+    message: 'API is working!' 
   });
 }
+

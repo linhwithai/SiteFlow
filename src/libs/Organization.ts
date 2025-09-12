@@ -32,7 +32,10 @@ export async function getCurrentUserId(): Promise<string | null> {
  * Get organization details by ID
  */
 export async function getOrganizationById(organizationId: string) {
-  const [organization] = await db
+  // Await the database connection
+  const database = await db;
+
+  const [organization] = await database
     .select()
     .from(organizationSchema)
     .where(eq(organizationSchema.id, organizationId))
@@ -58,12 +61,15 @@ export async function syncOrganizationWithClerk(
     website?: string;
   },
 ) {
+  // Await the database connection
+  const database = await db;
+
   // Check if organization exists
   const existingOrg = await getOrganizationById(clerkOrganizationId);
 
   if (existingOrg) {
     // Update existing organization
-    const [updatedOrg] = await db
+    const [updatedOrg] = await database
       .update(organizationSchema)
       .set({
         name: organizationData.name,
@@ -82,7 +88,7 @@ export async function syncOrganizationWithClerk(
     return updatedOrg;
   } else {
     // Create new organization
-    const [newOrg] = await db
+    const [newOrg] = await database
       .insert(organizationSchema)
       .values({
         id: clerkOrganizationId,
@@ -148,13 +154,16 @@ export async function getUserOrganizations() {
  * Validate organization slug uniqueness
  */
 export async function isOrganizationSlugUnique(slug: string, excludeId?: string): Promise<boolean> {
+  // Await the database connection
+  const database = await db;
+
   const conditions = [eq(organizationSchema.slug, slug)];
 
   if (excludeId) {
     conditions.push(eq(organizationSchema.id, excludeId));
   }
 
-  const existing = await db
+  const existing = await database
     .select({ id: organizationSchema.id })
     .from(organizationSchema)
     .where(and(...conditions))

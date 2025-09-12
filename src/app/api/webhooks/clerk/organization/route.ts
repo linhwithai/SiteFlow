@@ -104,8 +104,11 @@ async function handleOrganizationUpdated(data: any) {
 async function handleOrganizationDeleted(data: any) {
   const { id } = data;
 
+  // Await the database connection
+  const database = await db;
+
   // Soft delete by setting isActive to false
-  await db
+  await database
     .update(organizationSchema)
     .set({
       isActive: false,

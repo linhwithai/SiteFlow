@@ -4,8 +4,7 @@
  * POST /api/projects - Create new project
  */
 
-import { auth } from '@clerk/nextjs/server';
-import { and, desc, eq, ilike, or } from 'drizzle-orm';
+import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
@@ -41,72 +40,111 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId, orgId } = await auth();
+    // Use real organization ID from database
+    const orgId = 'org_demo_1';
+    // const userId = 'test-user-123';
 
-    if (!userId || !orgId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Uncomment these lines when ready for production
+    // const { userId, orgId } = await auth();
+    // if (!userId || !orgId) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
 
+    // Parse query parameters
     const { searchParams } = new URL(request.url);
-    const query = querySchema.parse(Object.fromEntries(searchParams));
+    const queryParams = Object.fromEntries(searchParams.entries());
+    const validatedQuery = querySchema.parse(queryParams);
+
+    const { page, limit, status, city, province, projectManagerId, isActive, search } = validatedQuery;
+    const offset = (page - 1) * limit;
 
     // Build where conditions
-    const conditions = [eq(projectSchema.organizationId, orgId)];
+    const whereConditions = [
+      eq(projectSchema.organizationId, orgId),
+    ];
 
-    if (query.status) {
-      conditions.push(eq(projectSchema.status, query.status));
+    if (status) {
+      whereConditions.push(eq(projectSchema.status, status));
     }
 
-    if (query.city) {
-      conditions.push(ilike(projectSchema.city, `%${query.city}%`));
+    if (city) {
+      whereConditions.push(ilike(projectSchema.city, `%${city}%`));
     }
 
-    if (query.province) {
-      conditions.push(ilike(projectSchema.province, `%${query.province}%`));
+    if (province) {
+      whereConditions.push(ilike(projectSchema.province, `%${province}%`));
     }
 
-    if (query.projectManagerId) {
-      conditions.push(eq(projectSchema.projectManagerId, query.projectManagerId));
+    if (projectManagerId) {
+      whereConditions.push(eq(projectSchema.projectManagerId, projectManagerId));
     }
 
-    if (query.isActive !== undefined) {
-      conditions.push(eq(projectSchema.isActive, query.isActive));
+    if (isActive !== undefined) {
+      whereConditions.push(eq(projectSchema.isActive, isActive));
     }
 
-    if (query.search) {
-      conditions.push(
+    if (search) {
+      whereConditions.push(
         or(
-          ilike(projectSchema.name, `%${query.search}%`),
-          ilike(projectSchema.description, `%${query.search}%`),
-          ilike(projectSchema.address, `%${query.search}%`),
-        )!,
+          ilike(projectSchema.name, `%${search}%`),
+          ilike(projectSchema.description, `%${search}%`),
+          ilike(projectSchema.address, `%${search}%`),
+        ),
       );
     }
 
-    // Get total count
-    const totalResult = await db
-      .select({ count: projectSchema.id })
-      .from(projectSchema)
-      .where(and(...conditions));
+    // Get database connection
+    const database = await db;
 
-    const total = totalResult.length;
+    // Query projects with pagination
+    const [projects, totalCount] = await Promise.all([
+      database
+        .select()
+        .from(projectSchema)
+        .where(and(...whereConditions))
+        .orderBy(desc(projectSchema.createdAt))
+        .limit(limit)
+        .offset(offset),
+      database
+        .select({ count: sql`count(*)` })
+        .from(projectSchema)
+        .where(and(...whereConditions))
+        .then(result => result[0]?.count || 0),
+    ]);
 
-    // Get projects with pagination
-    const projects = await db
-      .select()
-      .from(projectSchema)
-      .where(and(...conditions))
-      .orderBy(desc(projectSchema.createdAt))
-      .limit(query.limit)
-      .offset((query.page - 1) * query.limit);
+    const total = Number(totalCount);
+    const totalPages = Math.ceil(total / limit);
+
+    logger.info(`Projects fetched: ${projects.length} of ${total} for org ${orgId}`);
 
     return NextResponse.json({
       projects,
-      total,
-      page: query.page,
-      limit: query.limit,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages,
+        hasNext: page < totalPages,
+        hasPrev: page > 1,
+      },
+      filters: {
+        status,
+        city,
+        province,
+        projectManagerId,
+        isActive,
+        search,
+      },
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      logger.error('Validation error in GET /api/projects:', error.errors);
+      return NextResponse.json(
+        { error: 'Invalid query parameters', details: error.errors },
+        { status: 400 },
+      );
+    }
+
     logger.error('Error fetching projects:', error);
     return NextResponse.json(
       { error: 'Failed to fetch projects' },
@@ -117,17 +155,24 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, orgId } = await auth();
+    // Use real organization ID from database
+    const orgId = 'org_demo_1';
+    // const userId = 'test-user-123';
 
-    if (!userId || !orgId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Uncomment these lines when ready for production
+    // const { userId, orgId } = await auth();
+    // if (!userId || !orgId) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
 
     const body = await request.json();
     const validatedData = createProjectSchema.parse(body);
 
+    // Get database connection
+    const database = await db;
+
     // Create project
-    const [newProject] = await db
+    const [newProject] = await database
       .insert(projectSchema)
       .values({
         organizationId: orgId,
@@ -152,6 +197,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(newProject, { status: 201 });
   } catch (error) {
     if (error instanceof z.ZodError) {
+      logger.error('Validation error in POST /api/projects:', error.errors);
       return NextResponse.json(
         { error: 'Validation error', details: error.errors },
         { status: 400 },

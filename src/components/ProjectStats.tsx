@@ -50,18 +50,10 @@ export function ProjectStats({ stats, isLoading = false }: ProjectStatsProps) {
     {
       title: 'Đang thực hiện',
       value: stats.active,
-      description: 'Dự án đang hoạt động',
-      icon: CheckCircleIcon,
+      description: 'Dự án đang tiến hành',
+      icon: ClockIcon,
       color: 'text-green-600',
       bgColor: 'bg-green-100',
-    },
-    {
-      title: 'Tạm dừng',
-      value: stats.onHold,
-      description: 'Dự án tạm dừng',
-      icon: PauseIcon,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100',
     },
     {
       title: 'Hoàn thành',
@@ -70,6 +62,14 @@ export function ProjectStats({ stats, isLoading = false }: ProjectStatsProps) {
       icon: CheckCircleIcon,
       color: 'text-gray-600',
       bgColor: 'bg-gray-100',
+    },
+    {
+      title: 'Tạm dừng',
+      value: stats.onHold,
+      description: 'Dự án tạm dừng',
+      icon: PauseIcon,
+      color: 'text-yellow-600',
+      bgColor: 'bg-yellow-100',
     },
     {
       title: 'Hủy bỏ',
@@ -85,10 +85,10 @@ export function ProjectStats({ stats, isLoading = false }: ProjectStatsProps) {
     <div className="space-y-6">
       {/* Overview Stats */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
-        {statCards.map((stat, index) => {
+        {statCards.map((stat) => {
           const Icon = stat.icon;
           return (
-            <Card key={index}>
+            <Card key={stat.title}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
                   {stat.title}
@@ -101,7 +101,7 @@ export function ProjectStats({ stats, isLoading = false }: ProjectStatsProps) {
                 <div className="text-2xl font-bold text-gray-900 dark:text-white">
                   {stat.value}
                 </div>
-                <p className="text-xs text-gray-500 dark:text-gray-400">
+                <p className="text-xs text-gray-600 dark:text-gray-400">
                   {stat.description}
                 </p>
               </CardContent>
@@ -125,7 +125,7 @@ export function ProjectStats({ stats, isLoading = false }: ProjectStatsProps) {
             <div className="text-2xl font-bold text-gray-900 dark:text-white">
               {formatCurrency(stats.totalBudget)}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Tổng ngân sách tất cả dự án
             </p>
           </CardContent>
@@ -137,14 +137,14 @@ export function ProjectStats({ stats, isLoading = false }: ProjectStatsProps) {
               Ngân sách trung bình
             </CardTitle>
             <div className="rounded-full bg-blue-100 p-2">
-              <ClockIcon className="size-4 text-blue-600" />
+              <DollarSignIcon className="size-4 text-blue-600" />
             </div>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-gray-900 dark:text-white">
               {formatCurrency(stats.averageBudget)}
             </div>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-600 dark:text-gray-400">
               Ngân sách trung bình mỗi dự án
             </p>
           </CardContent>
@@ -154,91 +154,65 @@ export function ProjectStats({ stats, isLoading = false }: ProjectStatsProps) {
       {/* Progress Summary */}
       <Card>
         <CardHeader>
-          <CardTitle>Tổng quan tiến độ</CardTitle>
+          <CardTitle>Tóm tắt tiến độ</CardTitle>
           <CardDescription>
-            Phân tích tổng quan về tình trạng dự án
+            Thống kê tổng quan về tình trạng các dự án
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             {/* Progress Bars */}
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Hoàn thành</span>
-                <span>
-                  {stats.completed}
-                  /
-                  {stats.total}
+                <span className="text-gray-600 dark:text-gray-400">Hoàn thành</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0}
+                  %
                 </span>
               </div>
-              <div className="h-2 w-full rounded-full bg-gray-200">
+              <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                 <div
-                  className="h-2 rounded-full bg-green-600 transition-all duration-300"
+                  className="h-2 rounded-full bg-green-500"
                   style={{
                     width: `${stats.total > 0 ? (stats.completed / stats.total) * 100 : 0}%`,
                   }}
-                >
-                </div>
+                />
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Đang thực hiện</span>
-                <span>
-                  {stats.active}
-                  /
-                  {stats.total}
+                <span className="text-gray-600 dark:text-gray-400">Đang thực hiện</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {stats.total > 0 ? Math.round((stats.active / stats.total) * 100) : 0}
+                  %
                 </span>
               </div>
-              <div className="h-2 w-full rounded-full bg-gray-200">
+              <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                 <div
-                  className="h-2 rounded-full bg-blue-600 transition-all duration-300"
+                  className="h-2 rounded-full bg-blue-500"
                   style={{
                     width: `${stats.total > 0 ? (stats.active / stats.total) * 100 : 0}%`,
                   }}
-                >
-                </div>
+                />
               </div>
             </div>
 
-            <div className="space-y-3">
+            <div className="space-y-2">
               <div className="flex justify-between text-sm">
-                <span>Tạm dừng</span>
-                <span>
-                  {stats.onHold}
-                  /
-                  {stats.total}
+                <span className="text-gray-600 dark:text-gray-400">Tạm dừng</span>
+                <span className="font-medium text-gray-900 dark:text-white">
+                  {stats.total > 0 ? Math.round((stats.onHold / stats.total) * 100) : 0}
+                  %
                 </span>
               </div>
-              <div className="h-2 w-full rounded-full bg-gray-200">
+              <div className="h-2 w-full rounded-full bg-gray-200 dark:bg-gray-700">
                 <div
-                  className="h-2 rounded-full bg-yellow-600 transition-all duration-300"
+                  className="h-2 rounded-full bg-yellow-500"
                   style={{
                     width: `${stats.total > 0 ? (stats.onHold / stats.total) * 100 : 0}%`,
                   }}
-                >
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              <div className="flex justify-between text-sm">
-                <span>Hủy bỏ</span>
-                <span>
-                  {stats.cancelled}
-                  /
-                  {stats.total}
-                </span>
-              </div>
-              <div className="h-2 w-full rounded-full bg-gray-200">
-                <div
-                  className="h-2 rounded-full bg-red-600 transition-all duration-300"
-                  style={{
-                    width: `${stats.total > 0 ? (stats.cancelled / stats.total) * 100 : 0}%`,
-                  }}
-                >
-                </div>
+                />
               </div>
             </div>
           </div>

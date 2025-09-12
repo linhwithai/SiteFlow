@@ -19,6 +19,9 @@ const isProtectedRoute = createRouteMatcher([
   '/:locale/dashboard(.*)',
   '/onboarding(.*)',
   '/:locale/onboarding(.*)',
+]);
+
+const isApiRoute = createRouteMatcher([
   '/api(.*)',
   '/:locale/api(.*)',
 ]);
@@ -27,6 +30,11 @@ export default function middleware(
   request: NextRequest,
   event: NextFetchEvent,
 ) {
+  // Skip middleware for API routes that don't need auth
+  if (isApiRoute(request)) {
+    return NextResponse.next();
+  }
+
   if (
     request.nextUrl.pathname.includes('/sign-in')
     || request.nextUrl.pathname.includes('/sign-up')

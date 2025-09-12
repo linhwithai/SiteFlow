@@ -2,12 +2,19 @@
 
 import { CalendarIcon, EditIcon, MapPinIcon, TrashIcon, UserIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PROJECT_STATUS } from '@/types/Enum';
 import type { Project } from '@/types/Project';
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+};
 
 type ProjectDetailProps = {
   project: Project;
@@ -35,6 +42,28 @@ const statusColors = {
 export function ProjectDetail({ project, onEdit, onDelete, isLoading = false }: ProjectDetailProps) {
   const router = useRouter();
   const [isDeleting, setIsDeleting] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+
+  // Fetch users on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoadingUsers(true);
+        const response = await fetch('/api/users');
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data.users || []);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('vi-VN', {
@@ -59,6 +88,11 @@ export function ProjectDetail({ project, onEdit, onDelete, isLoading = false }: 
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const getProjectManagerName = (projectManagerId: string) => {
+    const user = users.find(u => u.id === projectManagerId);
+    return user ? `${user.name} (${user.role})` : projectManagerId;
   };
 
   const handleDelete = async () => {
@@ -226,9 +260,7 @@ export function ProjectDetail({ project, onEdit, onDelete, isLoading = false }: 
               </CardHeader>
               <CardContent>
                 <p className="text-gray-700 dark:text-gray-300">
-                  ID:
-                  {' '}
-                  {project.projectManagerId}
+                  {isLoadingUsers ? 'Đang tải...' : getProjectManagerName(project.projectManagerId)}
                 </p>
               </CardContent>
             </Card>

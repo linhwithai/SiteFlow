@@ -3,7 +3,7 @@
 ## 1. Cài đặt PostgreSQL
 
 ### Windows:
-1. Tải PostgreSQL từ: https://www.postgresql.org/download/windows/
+1. Tải PostgreSQL từ: ui lòng commit và
 2. Cài đặt với password mặc định hoặc tùy chỉnh
 3. Ghi nhớ password để sử dụng trong DATABASE_URL
 

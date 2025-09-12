@@ -1,16 +1,16 @@
 'use client';
 
-import { NextIntlClientProvider, useMessages } from 'next-intl';
+import { NextIntlClientProvider } from 'next-intl';
 
 export function ClientLayout({
   children,
   locale,
+  messages,
 }: {
   children: React.ReactNode;
   locale: string;
+  messages: any;
 }) {
-  const messages = useMessages();
-
   return (
     <NextIntlClientProvider locale={locale} messages={messages}>
       {children}

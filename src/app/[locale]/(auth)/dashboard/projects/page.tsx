@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { ProjectList } from '@/components/ProjectList';
 import { ProjectStats } from '@/components/ProjectStats';
-import type { Project, ProjectFilters, ProjectListResponse, ProjectStats as ProjectStatsType } from '@/types/Project';
+import type { Project, ProjectFilters, ProjectListResponse, ProjectStats as ProjectStatsType, UpdateProjectRequest } from '@/types/Project';
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -75,8 +75,31 @@ export default function ProjectsPage() {
 
   // Handle edit project
   const handleEditProject = (_project: Project) => {
-    // TODO: Navigate to edit page or open edit modal
-    // console.log('Edit project:', project);
+    // This is now handled by the modal in ProjectList
+  };
+
+  // Handle update project
+  const handleUpdateProject = async (projectId: string, data: UpdateProjectRequest) => {
+    try {
+      const response = await fetch(`/api/projects/${projectId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update project');
+      }
+
+      // Refresh projects list
+      await fetchProjects();
+      await fetchStats();
+    } catch (error) {
+      console.error('Error updating project:', error);
+      throw error; // Re-throw to let the modal handle the error
+    }
   };
 
   // Handle delete project
@@ -133,6 +156,7 @@ export default function ProjectsPage() {
         onFiltersChange={handleFiltersChange}
         onEdit={handleEditProject}
         onDelete={handleDeleteProject}
+        onUpdate={handleUpdateProject}
         isLoading={isLoading}
       />
     </div>

@@ -57,14 +57,3 @@ export const PROJECT_PERMISSION = {
 } as const;
 
 export type ProjectPermission = EnumValues<typeof PROJECT_PERMISSION>;
-
-// ===== PROJECT STATUS =====
-export const PROJECT_STATUS = {
-  PLANNING: 'planning',
-  ACTIVE: 'active',
-  ON_HOLD: 'on_hold',
-  COMPLETED: 'completed',
-  CANCELLED: 'cancelled',
-} as const;
-
-export type ProjectStatus = EnumValues<typeof PROJECT_STATUS>;

@@ -1,7 +1,7 @@
 import '@/styles/global.css';
 
 import type { Metadata } from 'next';
-import { unstable_setRequestLocale } from 'next-intl/server';
+import { getMessages, unstable_setRequestLocale } from 'next-intl/server';
 
 import { ClientLayout } from '@/components/ClientLayout';
 import { DemoBadge } from '@/components/DemoBadge';
@@ -36,11 +36,14 @@ export function generateStaticParams() {
   return AllLocales.map(locale => ({ locale }));
 }
 
-export default function RootLayout(props: {
+export default async function RootLayout(props: {
   children: React.ReactNode;
   params: { locale: string };
 }) {
   unstable_setRequestLocale(props.params.locale);
+  
+  // Get messages from server
+  const messages = await getMessages();
 
   // The `suppressHydrationWarning` in <html> is used to prevent hydration errors caused by `next-themes`.
   // Solution provided by the package itself: https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
@@ -51,7 +54,7 @@ export default function RootLayout(props: {
     <html lang={props.params.locale} suppressHydrationWarning>
       <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
         {/* PRO: Dark mode support for Shadcn UI */}
-        <ClientLayout locale={props.params.locale}>
+        <ClientLayout locale={props.params.locale} messages={messages}>
           {props.children}
 
           <DemoBadge />

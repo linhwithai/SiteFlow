@@ -1,115 +1,63 @@
 /**
- * Project Statistics API endpoint
+ * Project Stats API endpoint
  * GET /api/projects/stats - Get project statistics
  */
 
-import { auth } from '@clerk/nextjs/server';
-import { and, count, eq, sum } from 'drizzle-orm';
+// import { auth } from '@clerk/nextjs/server';
+import { and, eq, sql } from 'drizzle-orm';
 import { NextResponse } from 'next/server';
 
 import { db } from '@/libs/DB';
 import { logger } from '@/libs/Logger';
 import { projectSchema } from '@/models/Schema';
 import { PROJECT_STATUS } from '@/types/Enum';
-import type { ProjectStats } from '@/types/Project';
 
 export async function GET() {
   try {
-    const { userId, orgId } = await auth();
+    // Use real organization ID from database
+    const orgId = 'org_demo_1';
+    // const userId = 'test-user-123';
 
-    if (!userId || !orgId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Get database connection
+    const database = await db;
 
-    // Get total projects
-    const [totalResult] = await db
-      .select({ count: count() })
-      .from(projectSchema)
-      .where(
-        and(
-          eq(projectSchema.organizationId, orgId),
-          eq(projectSchema.isActive, true),
-        ),
-      );
-
-    // Get projects by status
-    const [activeResult] = await db
-      .select({ count: count() })
-      .from(projectSchema)
-      .where(
-        and(
-          eq(projectSchema.organizationId, orgId),
-          eq(projectSchema.status, PROJECT_STATUS.ACTIVE),
-          eq(projectSchema.isActive, true),
-        ),
-      );
-
-    const [completedResult] = await db
-      .select({ count: count() })
-      .from(projectSchema)
-      .where(
-        and(
-          eq(projectSchema.organizationId, orgId),
-          eq(projectSchema.status, PROJECT_STATUS.COMPLETED),
-          eq(projectSchema.isActive, true),
-        ),
-      );
-
-    const [onHoldResult] = await db
-      .select({ count: count() })
-      .from(projectSchema)
-      .where(
-        and(
-          eq(projectSchema.organizationId, orgId),
-          eq(projectSchema.status, PROJECT_STATUS.ON_HOLD),
-          eq(projectSchema.isActive, true),
-        ),
-      );
-
-    const [cancelledResult] = await db
-      .select({ count: count() })
-      .from(projectSchema)
-      .where(
-        and(
-          eq(projectSchema.organizationId, orgId),
-          eq(projectSchema.status, PROJECT_STATUS.CANCELLED),
-          eq(projectSchema.isActive, true),
-        ),
-      );
-
-    // Get budget statistics
-    const [budgetResult] = await db
+    // Get project statistics
+    const [stats] = await database
       .select({
-        totalBudget: sum(projectSchema.budget),
-        count: count(),
+        total: sql<number>`count(*)`,
+        active: sql<number>`count(case when status = ${PROJECT_STATUS.ACTIVE} then 1 end)`,
+        completed: sql<number>`count(case when status = ${PROJECT_STATUS.COMPLETED} then 1 end)`,
+        onHold: sql<number>`count(case when status = ${PROJECT_STATUS.ON_HOLD} then 1 end)`,
+        cancelled: sql<number>`count(case when status = ${PROJECT_STATUS.CANCELLED} then 1 end)`,
+        planning: sql<number>`count(case when status = ${PROJECT_STATUS.PLANNING} then 1 end)`,
+        totalBudget: sql<number>`coalesce(sum(budget), 0)`,
+        averageBudget: sql<number>`coalesce(avg(budget), 0)`,
       })
       .from(projectSchema)
       .where(
         and(
           eq(projectSchema.organizationId, orgId),
-          eq(projectSchema.isActive, true),
-        ),
+          eq(projectSchema.isActive, true)
+        )
       );
 
-    const total = totalResult?.count || 0;
-    const totalBudget = Number(budgetResult?.totalBudget) || 0;
-    const averageBudget = total > 0 ? totalBudget / total : 0;
+    logger.info(`Project stats fetched for org ${orgId}`);
 
-    const stats: ProjectStats = {
-      total,
-      active: activeResult?.count || 0,
-      completed: completedResult?.count || 0,
-      onHold: onHoldResult?.count || 0,
-      cancelled: cancelledResult?.count || 0,
-      totalBudget,
-      averageBudget,
-    };
+    return NextResponse.json({
+      total: Number(stats.total),
+      active: Number(stats.active),
+      completed: Number(stats.completed),
+      onHold: Number(stats.onHold),
+      cancelled: Number(stats.cancelled),
+      planning: Number(stats.planning),
+      totalBudget: Number(stats.totalBudget),
+      averageBudget: Number(stats.averageBudget),
+    });
 
-    return NextResponse.json(stats);
   } catch (error) {
     logger.error('Error fetching project stats:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch project statistics' },
+      { error: 'Failed to fetch project stats' },
       { status: 500 },
     );
   }

@@ -15,33 +15,42 @@ import { Env } from './Env';
 let client;
 let drizzle;
 
-// Need a database for production? Check out https://www.prisma.io/?via=saasboilerplatesrc
-// Tested and compatible with Next.js Boilerplate
-if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD && Env.DATABASE_URL) {
-  client = new Client({
-    connectionString: Env.DATABASE_URL,
-  });
-  await client.connect();
+// Initialize database connection
+async function initializeDB() {
+  // Need a database for production? Check out https://www.prisma.io/?via=saasboilerplatesrc
+  // Tested and compatible with Next.js Boilerplate
+  if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD && Env.DATABASE_URL) {
+    client = new Client({
+      connectionString: Env.DATABASE_URL,
+    });
+    await client.connect();
 
-  drizzle = drizzlePg(client, { schema });
-  await migratePg(drizzle, {
-    migrationsFolder: path.join(process.cwd(), 'migrations'),
-  });
-} else {
-  // Stores the db connection in the global scope to prevent multiple instances due to hot reloading with Next.js
-  const global = globalThis as unknown as { client: PGlite; drizzle: PgliteDatabase<typeof schema> };
+    drizzle = drizzlePg(client, { schema });
+    await migratePg(drizzle, {
+      migrationsFolder: path.join(process.cwd(), 'migrations'),
+    });
+  } else {
+    // Stores the db connection in the global scope to prevent multiple instances due to hot reloading with Next.js
+    const global = globalThis as unknown as { client: PGlite; drizzle: PgliteDatabase<typeof schema> };
 
-  if (!global.client) {
-    global.client = new PGlite();
-    await global.client.waitReady;
+    if (!global.client) {
+      global.client = new PGlite();
+      await global.client.waitReady;
 
-    global.drizzle = drizzlePglite(global.client, { schema });
+      global.drizzle = drizzlePglite(global.client, { schema });
+    }
+
+    drizzle = global.drizzle;
+    await migratePglite(global.drizzle, {
+      migrationsFolder: path.join(process.cwd(), 'migrations'),
+    });
   }
-
-  drizzle = global.drizzle;
-  await migratePglite(global.drizzle, {
-    migrationsFolder: path.join(process.cwd(), 'migrations'),
-  });
 }
 
-export const db = drizzle;
+// Initialize database
+let db: any;
+
+// Use a promise to handle async initialization
+const dbPromise = initializeDB().then(() => drizzle);
+
+export { dbPromise as db };

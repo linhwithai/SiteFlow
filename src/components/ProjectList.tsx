@@ -1,14 +1,22 @@
 'use client';
 
-import { CalendarIcon, MapPinIcon, MoreHorizontalIcon, PlusIcon, SearchIcon } from 'lucide-react';
+import { CalendarIcon, MapPinIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { EditProjectModal } from '@/components/EditProjectModal';
 import { Input } from '@/components/ui/input';
 import { PROJECT_STATUS } from '@/types/Enum';
-import type { Project, ProjectFilters } from '@/types/Project';
+import type { Project, ProjectFilters, UpdateProjectRequest } from '@/types/Project';
+
+type User = {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+};
 
 type ProjectListProps = {
   projects: Project[];
@@ -19,6 +27,7 @@ type ProjectListProps = {
   onFiltersChange: (filters: ProjectFilters) => void;
   onEdit: (project: Project) => void;
   onDelete: (project: Project) => void;
+  onUpdate: (projectId: string, data: UpdateProjectRequest) => Promise<void>;
   isLoading?: boolean;
 };
 
@@ -45,13 +54,44 @@ export function ProjectList({
   limit,
   onPageChange,
   onFiltersChange,
-  onEdit,
+  onEdit: _onEdit,
   onDelete: _onDelete,
+  onUpdate,
   isLoading = false,
 }: ProjectListProps) {
   const router = useRouter();
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [editingProject, setEditingProject] = useState<Project | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+
+  // Fetch users on component mount
+  useEffect(() => {
+    const fetchUsers = async () => {
+      try {
+        setIsLoadingUsers(true);
+        const response = await fetch('/api/users');
+        if (response.ok) {
+          const data = await response.json();
+          setUsers(data.users || []);
+        }
+      } catch (error) {
+        console.error('Error fetching users:', error);
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+
+    fetchUsers();
+  }, []);
+
+  const getProjectManagerName = (projectManagerId: string) => {
+    const user = users.find(u => u.id === projectManagerId);
+    return user ? `${user.name} (${user.role})` : projectManagerId;
+  };
 
   const handleSearch = (value: string) => {
     setSearchTerm(value);
@@ -63,6 +103,31 @@ export function ProjectList({
     onFiltersChange({ status: status as any || undefined });
   };
 
+  // Handle edit project modal
+  const handleEditClick = (project: Project) => {
+    setEditingProject(project);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setEditingProject(null);
+  };
+
+  const handleSaveProject = async (data: UpdateProjectRequest) => {
+    if (!editingProject) return;
+    
+    try {
+      setIsUpdating(true);
+      await onUpdate(editingProject.id, data);
+      handleCloseModal();
+    } catch (error) {
+      console.error('Error updating project:', error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
+
   const totalPages = Math.ceil(total / limit);
 
   const formatCurrency = (amount: number) => {
@@ -72,7 +137,7 @@ export function ProjectList({
     }).format(amount);
   };
 
-  const formatDate = (date: Date | string) => {
+  const formatDate = (date: Date) => {
     return new Date(date).toLocaleDateString('vi-VN');
   };
 
@@ -104,7 +169,7 @@ export function ProjectList({
       {/* Filters */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex flex-col gap-4 sm:flex-row">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="flex-1">
               <div className="relative">
                 <SearchIcon className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-gray-400" />
@@ -116,18 +181,18 @@ export function ProjectList({
                 />
               </div>
             </div>
-            <div className="sm:w-48">
+            <div className="flex gap-2">
               <select
                 value={statusFilter}
                 onChange={e => handleStatusFilter(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Tất cả trạng thái</option>
-                {Object.entries(statusLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
-                  </option>
-                ))}
+                <option value={PROJECT_STATUS.PLANNING}>Lập kế hoạch</option>
+                <option value={PROJECT_STATUS.ACTIVE}>Đang thực hiện</option>
+                <option value={PROJECT_STATUS.ON_HOLD}>Tạm dừng</option>
+                <option value={PROJECT_STATUS.COMPLETED}>Hoàn thành</option>
+                <option value={PROJECT_STATUS.CANCELLED}>Hủy bỏ</option>
               </select>
             </div>
           </div>
@@ -135,178 +200,188 @@ export function ProjectList({
       </Card>
 
       {/* Projects Grid */}
-      {isLoading
-        ? (
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }).map((_, i) => (
-                <Card key={i} className="animate-pulse">
-                  <CardHeader>
-                    <div className="h-4 w-3/4 rounded bg-gray-200"></div>
-                    <div className="h-3 w-1/2 rounded bg-gray-200"></div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-2">
-                      <div className="h-3 rounded bg-gray-200"></div>
-                      <div className="h-3 w-2/3 rounded bg-gray-200"></div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+      {isLoading ? (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardHeader>
+                <div className="h-4 w-3/4 rounded bg-gray-200" />
+                <div className="h-3 w-1/2 rounded bg-gray-200" />
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  <div className="h-3 w-full rounded bg-gray-200" />
+                  <div className="h-3 w-2/3 rounded bg-gray-200" />
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : projects.length === 0 ? (
+        <Card>
+          <CardContent className="p-12 text-center">
+            <div className="mx-auto mb-4 size-12 rounded-full bg-gray-100 p-3">
+              <SearchIcon className="size-6 text-gray-400" />
             </div>
-          )
-        : projects.length === 0
-          ? (
-              <Card>
-                <CardContent className="p-12 text-center">
-                  <div className="mb-4 text-gray-400">
-                    <CalendarIcon className="mx-auto size-12" />
+            <h3 className="mb-2 text-lg font-medium text-gray-900">
+              Không tìm thấy dự án
+            </h3>
+            <p className="text-gray-500">
+              Hãy thử thay đổi bộ lọc hoặc tạo dự án mới.
+            </p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {projects.map(project => (
+            <Card key={project.id} className="transition-shadow hover:shadow-lg">
+              <CardHeader>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <CardTitle className="text-lg font-semibold text-gray-900 dark:text-white">
+                      {project.name}
+                    </CardTitle>
+                    <CardDescription className="mt-1 text-sm text-gray-600 dark:text-gray-400">
+                      {project.description || 'Không có mô tả'}
+                    </CardDescription>
                   </div>
-                  <h3 className="mb-2 text-lg font-medium text-gray-900 dark:text-white">
-                    Chưa có dự án nào
-                  </h3>
-                  <p className="mb-4 text-gray-600 dark:text-gray-400">
-                    Hãy tạo dự án đầu tiên để bắt đầu quản lý công việc
-                  </p>
-                  <Button
-                    onClick={() => router.push('/dashboard/projects/new')}
-                    className="flex items-center gap-2"
-                  >
-                    <PlusIcon className="size-4" />
-                    Tạo dự án mới
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {projects.map(project => (
-                  <Card key={project.id} className="transition-shadow hover:shadow-lg">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-start justify-between">
-                        <div className="min-w-0 flex-1">
-                          <CardTitle className="truncate text-lg">
-                            {project.name}
-                          </CardTitle>
-                          <CardDescription className="truncate">
-                            {project.description || 'Không có mô tả'}
-                          </CardDescription>
-                        </div>
-                        <div className="ml-2 flex items-center gap-2">
-                          <span
-                            className={`rounded-full px-2 py-1 text-xs font-medium ${statusColors[project.status]}`}
-                          >
-                            {statusLabels[project.status]}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="size-8 p-0"
-                            onClick={() => {
-                              // TODO: Implement dropdown menu
-                              // console.log('More options for project:', project.id);
-                            }}
-                          >
-                            <MoreHorizontalIcon className="size-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </CardHeader>
+                  <div className="ml-2">
+                    <span
+                      className={`inline-flex rounded-full px-2 py-1 text-xs font-medium ${
+                        statusColors[project.status]
+                      }`}
+                    >
+                      {statusLabels[project.status]}
+                    </span>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {/* Location */}
+                  {project.address && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <MapPinIcon className="size-4" />
+                      <span className="truncate">{project.address}</span>
+                    </div>
+                  )}
 
-                    <CardContent className="space-y-3">
-                      {/* Location */}
-                      {(project.address || project.city) && (
-                        <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <MapPinIcon className="mt-0.5 size-4 shrink-0" />
-                          <span className="truncate">
-                            {[project.address, project.city, project.province]
-                              .filter(Boolean)
-                              .join(', ')}
-                          </span>
-                        </div>
-                      )}
+                  {/* Dates */}
+                  {project.startDate && (
+                    <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                      <CalendarIcon className="size-4" />
+                      <span>
+                        {formatDate(project.startDate)}
+                        {project.endDate && ` - ${formatDate(project.endDate)}`}
+                      </span>
+                    </div>
+                  )}
 
-                      {/* Timeline */}
-                      {(project.startDate || project.endDate) && (
-                        <div className="flex items-start gap-2 text-sm text-gray-600 dark:text-gray-400">
-                          <CalendarIcon className="mt-0.5 size-4 shrink-0" />
-                          <span>
-                            {project.startDate && formatDate(project.startDate)}
-                            {project.startDate && project.endDate && ' - '}
-                            {project.endDate && formatDate(project.endDate)}
-                          </span>
-                        </div>
-                      )}
+                  {/* Budget */}
+                  {project.budget && (
+                    <div className="text-sm font-medium text-green-600 dark:text-green-400">
+                      {formatCurrency(project.budget)}
+                    </div>
+                  )}
 
-                      {/* Budget */}
-                      {project.budget && (
-                        <div className="text-sm font-medium text-green-600 dark:text-green-400">
-                          {formatCurrency(project.budget)}
-                        </div>
-                      )}
+                  {/* Project Manager */}
+                  {project.projectManagerId && (
+                    <div className="text-sm text-gray-600 dark:text-gray-400">
+                      Quản lý:
+                      {' '}
+                      {isLoadingUsers ? 'Đang tải...' : getProjectManagerName(project.projectManagerId)}
+                    </div>
+                  )}
 
-                      {/* Actions */}
-                      <div className="flex gap-2 pt-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => onEdit(project)}
-                        >
-                          Chỉnh sửa
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1"
-                          onClick={() => router.push(`/dashboard/projects/${project.id}`)}
-                        >
-                          Xem chi tiết
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEditClick(project)}
+                      className="flex-1"
+                    >
+                      Chỉnh sửa
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => router.push(`/dashboard/projects/${project.id}`)}
+                      className="flex-1"
+                    >
+                      Xem chi tiết
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page - 1)}
-            disabled={page <= 1}
-          >
-            Trước
-          </Button>
-
-          <div className="flex items-center gap-1">
-            {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-              const pageNum = i + 1;
-              return (
-                <Button
-                  key={pageNum}
-                  variant={pageNum === page ? 'default' : 'outline'}
-                  size="sm"
-                  onClick={() => onPageChange(pageNum)}
-                  className="size-8 p-0"
-                >
-                  {pageNum}
-                </Button>
-              );
-            })}
+        <div className="flex items-center justify-between">
+          <div className="text-sm text-gray-700 dark:text-gray-300">
+            Hiển thị
+            {' '}
+            {(page - 1) * limit + 1}
+            {' '}
+            đến
+            {' '}
+            {Math.min(page * limit, total)}
+            {' '}
+            trong tổng số
+            {' '}
+            {total}
+            {' '}
+            dự án
           </div>
-
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onPageChange(page + 1)}
-            disabled={page >= totalPages}
-          >
-            Sau
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page - 1)}
+              disabled={page === 1}
+            >
+              Trước
+            </Button>
+            <div className="flex gap-1">
+              {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                const pageNum = i + 1;
+                return (
+                  <Button
+                    key={pageNum}
+                    variant={page === pageNum ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => onPageChange(pageNum)}
+                    className="w-8"
+                  >
+                    {pageNum}
+                  </Button>
+                );
+              })}
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => onPageChange(page + 1)}
+              disabled={page === totalPages}
+            >
+              Sau
+            </Button>
+          </div>
         </div>
       )}
+
+      {/* Edit Project Modal */}
+      <EditProjectModal
+        project={editingProject}
+        isOpen={isEditModalOpen}
+        onClose={handleCloseModal}
+        onSave={handleSaveProject}
+        isLoading={isUpdating}
+      />
     </div>
   );
 }
