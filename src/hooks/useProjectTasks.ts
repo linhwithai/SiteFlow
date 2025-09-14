@@ -190,7 +190,7 @@ export function useProjectTasks({
 
       // Update local state
       setTasks(prev => prev.map(task =>
-        task.id === taskId ? updatedTask : task,
+        task.id === parseInt(taskId) ? updatedTask : task,
       ));
 
       return updatedTask;
@@ -218,7 +218,7 @@ export function useProjectTasks({
       }
 
       // Remove from local state
-      setTasks(prev => prev.filter(task => task.id !== taskId));
+      setTasks(prev => prev.filter(task => task.id !== parseInt(taskId)));
 
       // Update pagination total
       if (pagination) {

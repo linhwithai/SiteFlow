@@ -8,6 +8,59 @@ import { DemoBadge } from '@/components/DemoBadge';
 import { AllLocales } from '@/utils/AppConfig';
 
 export const metadata: Metadata = {
+  title: 'SiteFlow - Quản lý Dự án Xây dựng',
+  description: 'Nền tảng quản lý dự án xây dựng cho các công ty vừa và nhỏ tại Việt Nam',
+  keywords: ['xây dựng', 'quản lý dự án', 'nhật ký công trình', 'construction', 'project management'],
+  authors: [{ name: 'SiteFlow Team' }],
+  creator: 'SiteFlow',
+  publisher: 'SiteFlow',
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false,
+  },
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'),
+  alternates: {
+    canonical: '/',
+    languages: {
+      'vi-VN': '/vi',
+      'en-US': '/en',
+    },
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'vi_VN',
+    url: '/',
+    title: 'SiteFlow - Quản lý Dự án Xây dựng',
+    description: 'Nền tảng quản lý dự án xây dựng cho các công ty vừa và nhỏ tại Việt Nam',
+    siteName: 'SiteFlow',
+    images: [
+      {
+        url: '/assets/images/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'SiteFlow - Quản lý Dự án Xây dựng',
+      },
+    ],
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'SiteFlow - Quản lý Dự án Xây dựng',
+    description: 'Nền tảng quản lý dự án xây dựng cho các công ty vừa và nhỏ tại Việt Nam',
+    images: ['/assets/images/og-image.png'],
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
+  },
+  manifest: '/manifest.json',
   icons: [
     {
       rel: 'apple-touch-icon',
@@ -29,7 +82,20 @@ export const metadata: Metadata = {
       rel: 'icon',
       url: '/favicon.ico',
     },
+    {
+      rel: 'manifest',
+      url: '/manifest.json',
+    },
   ],
+  other: {
+    'mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-capable': 'yes',
+    'apple-mobile-web-app-status-bar-style': 'default',
+    'apple-mobile-web-app-title': 'SiteFlow',
+    'msapplication-TileColor': '#4F46E5',
+    'msapplication-config': '/browserconfig.xml',
+    'theme-color': '#4F46E5',
+  },
 };
 
 export function generateStaticParams() {

@@ -8,8 +8,9 @@ import { eq, and, desc, ilike, or } from 'drizzle-orm';
 const createTaskSchema = z.object({
   title: z.string().min(1, 'Title is required'),
   description: z.string().optional(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  type: z.enum(['CONSTRUCTION', 'INSPECTION', 'MAINTENANCE', 'SAFETY', 'QUALITY', 'ADMINISTRATIVE', 'OTHER']),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']),
+  status: z.enum(['todo', 'in_progress', 'review', 'completed', 'cancelled']).optional(),
+  type: z.enum(['construction', 'inspection', 'maintenance', 'safety', 'quality', 'administrative', 'other']),
   assignedTo: z.string().optional(),
   dueDate: z.string().optional(),
   estimatedHours: z.number().min(0).optional(),
@@ -133,8 +134,9 @@ export async function POST(
         organizationId: orgId,
         title: validatedData.title,
         description: validatedData.description,
-        priority: validatedData.priority.toLowerCase(),
-        type: validatedData.type.toLowerCase(),
+        priority: validatedData.priority,
+        status: validatedData.status || 'todo',
+        type: validatedData.type,
         assignedTo: validatedData.assignedTo,
         dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
         estimatedHours: validatedData.estimatedHours,
@@ -142,8 +144,6 @@ export async function POST(
         dependencies: validatedData.dependencies,
         status: 'todo',
         progress: 0,
-        createdBy: userId,
-        updatedBy: userId,
       })
       .returning();
 

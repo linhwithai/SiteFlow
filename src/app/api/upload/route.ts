@@ -77,33 +77,11 @@ export async function POST(request: NextRequest) {
       apiSecret: process.env.CLOUDINARY_API_SECRET ? '***' : 'not set',
     });
 
-    // Always use mock for now to avoid Cloudinary issues
-    console.log('🎭 Using mock upload (Cloudinary bypassed for testing)');
-    const mockPublicId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    const mockUrl = `https://via.placeholder.com/800x600/4F46E5/FFFFFF?text=${encodeURIComponent(file.name)}`;
-
-    logger.info('Mock file upload (Cloudinary bypassed)', {
-      publicId: mockPublicId,
-      folder,
-      originalName: file.name,
-    });
-
-    return NextResponse.json({
-      success: true,
-      data: {
-        publicId: mockPublicId,
-        url: mockUrl,
-        width: 800,
-        height: 600,
-        originalName: file.name,
-        size: file.size,
-        type: file.type,
-      },
-    });
-
     // Upload to Cloudinary
     const result = await uploadImage(buffer, folder, {
       tags: tags ? tags.split(',') : undefined,
+      addWatermark: true,
+      watermarkText: 'SiteFlow',
     });
 
     logger.info('File uploaded successfully', {
@@ -117,6 +95,7 @@ export async function POST(request: NextRequest) {
       data: {
         publicId: result.public_id,
         url: result.secure_url,
+        thumbnailUrl: result.thumbnail_url,
         width: result.width,
         height: result.height,
         originalName: file.name,

@@ -1,7 +1,7 @@
 /**
- * Projects API endpoints
- * GET /api/projects - List projects with filters
- * POST /api/projects - Create new project
+ * Projects API v1 endpoints
+ * GET /api/v1/projects - List projects with filters
+ * POST /api/v1/projects - Create new project
  */
 
 import { auth } from '@clerk/nextjs/server';
@@ -111,39 +111,72 @@ export async function GET(request: NextRequest) {
     const total = Number(totalCount);
     const totalPages = Math.ceil(total / limit);
 
-    logger.info(`Projects fetched: ${projects.length} of ${total} for org ${orgId}`);
+    logger.info(`Projects fetched for org ${orgId}`, {
+      total,
+      page,
+      limit,
+      filters: { status, city, province, projectManagerId, isActive, search },
+    });
 
     return NextResponse.json({
-      projects,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages,
-        hasNext: page < totalPages,
-        hasPrev: page > 1,
+      success: true,
+      data: {
+        projects,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages,
+          hasNext: page < totalPages,
+          hasPrev: page > 1,
+        },
+        filters: {
+          status,
+          city,
+          province,
+          projectManagerId,
+          isActive,
+          search,
+        },
       },
-      filters: {
-        status,
-        city,
-        province,
-        projectManagerId,
-        isActive,
-        search,
+      meta: {
+        version: 'v1',
+        timestamp: new Date().toISOString(),
       },
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error('Validation error in GET /api/projects:', error.errors);
+      logger.error('Validation error in GET /api/v1/projects:', error.errors);
       return NextResponse.json(
-        { error: 'Invalid query parameters', details: error.errors },
+        { 
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid query parameters',
+            details: error.errors,
+          },
+          meta: {
+            version: 'v1',
+            timestamp: new Date().toISOString(),
+          },
+        },
         { status: 400 },
       );
     }
 
     logger.error('Error fetching projects:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch projects' },
+      { 
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to fetch projects',
+        },
+        meta: {
+          version: 'v1',
+          timestamp: new Date().toISOString(),
+        },
+      },
       { status: 500 },
     );
   }
@@ -162,42 +195,65 @@ export async function POST(request: NextRequest) {
     // Get database connection
     const database = await db;
 
-    // Create project
+    // Create project with ERP audit trail
     const [newProject] = await database
       .insert(projectSchema)
       .values({
+        ...validatedData,
         organizationId: orgId,
-        name: validatedData.name,
-        description: validatedData.description,
-        address: validatedData.address,
-        city: validatedData.city,
-        province: validatedData.province,
-        startDate: validatedData.startDate ? new Date(validatedData.startDate) : null,
-        endDate: validatedData.endDate ? new Date(validatedData.endDate) : null,
-        budget: validatedData.budget,
-        status: PROJECT_STATUS.PLANNING,
-        projectManagerId: validatedData.projectManagerId,
-        isActive: true,
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        createdById: userId,
+        updatedById: userId,
+        version: 1,
       })
       .returning();
 
-    logger.info(`Project created: ${newProject?.id} by user org_demo_1`);
+    logger.info(`Project created for org ${orgId}`, {
+      projectId: newProject.id,
+      projectName: newProject.name,
+      createdBy: userId,
+    });
 
-    return NextResponse.json(newProject, { status: 201 });
+    return NextResponse.json({
+      success: true,
+      data: newProject,
+      meta: {
+        version: 'v1',
+        timestamp: new Date().toISOString(),
+      },
+    });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error('Validation error in POST /api/projects:', error.errors);
+      logger.error('Validation error in POST /api/v1/projects:', error.errors);
       return NextResponse.json(
-        { error: 'Validation error', details: error.errors },
+        { 
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Invalid request data',
+            details: error.errors,
+          },
+          meta: {
+            version: 'v1',
+            timestamp: new Date().toISOString(),
+          },
+        },
         { status: 400 },
       );
     }
 
     logger.error('Error creating project:', error);
     return NextResponse.json(
-      { error: 'Failed to create project' },
+      { 
+        success: false,
+        error: {
+          code: 'INTERNAL_ERROR',
+          message: 'Failed to create project',
+        },
+        meta: {
+          version: 'v1',
+          timestamp: new Date().toISOString(),
+        },
+      },
       { status: 500 },
     );
   }

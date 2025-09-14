@@ -8,9 +8,9 @@ import { eq, and } from 'drizzle-orm';
 const updateTaskSchema = z.object({
   title: z.string().min(1).optional(),
   description: z.string().optional(),
-  status: z.enum(['TODO', 'IN_PROGRESS', 'REVIEW', 'COMPLETED', 'CANCELLED']).optional(),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).optional(),
-  type: z.enum(['CONSTRUCTION', 'INSPECTION', 'MAINTENANCE', 'SAFETY', 'QUALITY', 'ADMINISTRATIVE', 'OTHER']).optional(),
+  status: z.enum(['todo', 'in_progress', 'review', 'completed', 'cancelled']).optional(),
+  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  type: z.enum(['construction', 'inspection', 'maintenance', 'safety', 'quality', 'administrative', 'other']).optional(),
   assignedTo: z.string().optional(),
   dueDate: z.string().optional(),
   estimatedHours: z.number().min(0).optional(),
@@ -33,6 +33,7 @@ export async function GET(
     // Hardcoded for development - in production, get from auth
     const orgId = 'org_demo_1';
 
+    const dbInstance = await db;
     const task = await dbInstance
       .select()
       .from(projectTaskSchema)
@@ -84,6 +85,7 @@ export async function PUT(
     const orgId = 'org_demo_1';
 
     // Check if task exists
+    const dbInstance = await db;
     const existingTask = await dbInstance
       .select()
       .from(projectTaskSchema)
@@ -108,9 +110,9 @@ export async function PUT(
     
     if (validatedData.title !== undefined) updateData.title = validatedData.title;
     if (validatedData.description !== undefined) updateData.description = validatedData.description;
-    if (validatedData.status !== undefined) updateData.status = validatedData.status.toLowerCase();
-    if (validatedData.priority !== undefined) updateData.priority = validatedData.priority.toLowerCase();
-    if (validatedData.type !== undefined) updateData.type = validatedData.type.toLowerCase();
+    if (validatedData.status !== undefined) updateData.status = validatedData.status;
+    if (validatedData.priority !== undefined) updateData.priority = validatedData.priority;
+    if (validatedData.type !== undefined) updateData.type = validatedData.type;
     if (validatedData.assignedTo !== undefined) updateData.assignedTo = validatedData.assignedTo;
     if (validatedData.dueDate !== undefined) updateData.dueDate = validatedData.dueDate ? new Date(validatedData.dueDate) : null;
     if (validatedData.estimatedHours !== undefined) updateData.estimatedHours = validatedData.estimatedHours;
@@ -121,7 +123,7 @@ export async function PUT(
     if (validatedData.isActive !== undefined) updateData.isActive = validatedData.isActive;
 
     // Set completedAt if status is completed
-    if (validatedData.status === 'COMPLETED' && existingTask[0].status !== 'completed') {
+    if (validatedData.status === 'completed' && existingTask[0].status !== 'completed') {
       updateData.completedAt = new Date();
     }
 
@@ -172,6 +174,7 @@ export async function DELETE(
     const orgId = 'org_demo_1';
 
     // Check if task exists
+    const dbInstance = await db;
     const existingTask = await dbInstance
       .select()
       .from(projectTaskSchema)
@@ -192,7 +195,7 @@ export async function DELETE(
     }
 
     // Soft delete by setting isActive to false
-    await db
+    await dbInstance
       .update(projectTaskSchema)
       .set({ isActive: false })
       .where(

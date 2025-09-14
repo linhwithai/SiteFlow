@@ -47,6 +47,13 @@ export const organizationSchema = pgTable(
       'stripe_subscription_current_period_end',
       { mode: 'number' },
     ),
+    // ERP Audit Trail fields
+    createdById: text('created_by_id'),
+    updatedById: text('updated_by_id'),
+    version: integer('version').default(1).notNull(),
+    // ERP Soft Delete fields
+    deletedAt: timestamp('deleted_at', { mode: 'date' }),
+    deletedById: text('deleted_by_id'),
     // System fields
     isActive: boolean('is_active').default(true).notNull(),
     updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -84,6 +91,13 @@ export const projectSchema = pgTable('project', {
   status: varchar('status', { length: 20 }).default('planning').notNull(), // planning, active, on_hold, completed, cancelled
   // Project manager info
   projectManagerId: text('project_manager_id'), // Clerk User ID
+  // ERP Audit Trail fields
+  createdById: text('created_by_id'),
+  updatedById: text('updated_by_id'),
+  version: integer('version').default(1).notNull(),
+  // ERP Soft Delete fields
+  deletedAt: timestamp('deleted_at', { mode: 'date' }),
+  deletedById: text('deleted_by_id'),
   // System fields
   isActive: boolean('is_active').default(true).notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -115,8 +129,14 @@ export const dailyLogSchema = pgTable('daily_log', {
   // Issues and notes
   issues: text('issues'),
   notes: text('notes'),
-  // System fields
+  // ERP Audit Trail fields
   createdById: text('created_by_id').notNull(), // Clerk User ID
+  updatedById: text('updated_by_id'),
+  version: integer('version').default(1).notNull(),
+  // ERP Soft Delete fields
+  deletedAt: timestamp('deleted_at', { mode: 'date' }),
+  deletedById: text('deleted_by_id'),
+  // System fields
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
     .$onUpdate(() => new Date())
@@ -145,8 +165,14 @@ export const projectPhotoSchema = pgTable('project_photo', {
   // Photo metadata
   caption: text('caption'),
   tags: text('tags'), // JSON array of tags
-  // System fields
+  // ERP Audit Trail fields
   uploadedById: text('uploaded_by_id').notNull(), // Clerk User ID
+  updatedById: text('updated_by_id'),
+  version: integer('version').default(1).notNull(),
+  // ERP Soft Delete fields
+  deletedAt: timestamp('deleted_at', { mode: 'date' }),
+  deletedById: text('deleted_by_id'),
+  // System fields
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
     .$onUpdate(() => new Date())
@@ -183,6 +209,13 @@ export const projectTaskSchema = pgTable('project_task', {
   // Metadata
   tags: text('tags'), // JSON array of tags
   dependencies: text('dependencies'), // JSON array of task IDs
+  // ERP Audit Trail fields
+  createdById: text('created_by_id'),
+  updatedById: text('updated_by_id'),
+  version: integer('version').default(1).notNull(),
+  // ERP Soft Delete fields
+  deletedAt: timestamp('deleted_at', { mode: 'date' }),
+  deletedById: text('deleted_by_id'),
   // System fields
   isActive: boolean('is_active').default(true).notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
@@ -198,6 +231,154 @@ export const todoSchema = pgTable('todo', {
   ownerId: text('owner_id').notNull(),
   title: text('title').notNull(),
   message: text('message').notNull(),
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
+// ===== ERP FINANCIAL MANAGEMENT SCHEMA =====
+// Financial accounts for ERP system
+export const financialAccountSchema = pgTable('financial_account', {
+  id: serial('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organizationSchema.id, { onDelete: 'cascade' }),
+  accountCode: varchar('account_code', { length: 20 }).notNull(),
+  accountName: text('account_name').notNull(),
+  accountType: varchar('account_type', { length: 20 }).notNull(), // asset, liability, equity, revenue, expense
+  parentAccountId: integer('parent_account_id'),
+  isActive: boolean('is_active').default(true).notNull(),
+  // ERP Audit Trail fields
+  createdById: text('created_by_id'),
+  updatedById: text('updated_by_id'),
+  version: integer('version').default(1).notNull(),
+  // ERP Soft Delete fields
+  deletedAt: timestamp('deleted_at', { mode: 'date' }),
+  deletedById: text('deleted_by_id'),
+  // System fields
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
+// Financial transactions for ERP system
+export const financialTransactionSchema = pgTable('financial_transaction', {
+  id: serial('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organizationSchema.id, { onDelete: 'cascade' }),
+  projectId: integer('project_id').references(() => projectSchema.id, { onDelete: 'set null' }),
+  transactionDate: timestamp('transaction_date', { mode: 'date' }).notNull(),
+  amount: bigint('amount', { mode: 'number' }).notNull(),
+  currency: varchar('currency', { length: 3 }).default('VND').notNull(),
+  description: text('description'),
+  referenceNumber: varchar('reference_number', { length: 50 }),
+  accountDebitId: integer('account_debit_id'),
+  accountCreditId: integer('account_credit_id'),
+  // ERP Audit Trail fields
+  createdById: text('created_by_id').notNull(),
+  updatedById: text('updated_by_id'),
+  version: integer('version').default(1).notNull(),
+  // ERP Soft Delete fields
+  deletedAt: timestamp('deleted_at', { mode: 'date' }),
+  deletedById: text('deleted_by_id'),
+  // System fields
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
+// ===== ERP HUMAN RESOURCES SCHEMA =====
+// Employee management for ERP system
+export const employeeSchema = pgTable('employee', {
+  id: serial('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organizationSchema.id, { onDelete: 'cascade' }),
+  clerkUserId: text('clerk_user_id'),
+  employeeCode: varchar('employee_code', { length: 20 }).notNull(),
+  firstName: text('first_name').notNull(),
+  lastName: text('last_name').notNull(),
+  email: text('email'),
+  phone: text('phone'),
+  position: text('position'),
+  department: text('department'),
+  hireDate: timestamp('hire_date', { mode: 'date' }),
+  salary: bigint('salary', { mode: 'number' }),
+  isActive: boolean('is_active').default(true).notNull(),
+  // ERP Audit Trail fields
+  createdById: text('created_by_id'),
+  updatedById: text('updated_by_id'),
+  version: integer('version').default(1).notNull(),
+  // ERP Soft Delete fields
+  deletedAt: timestamp('deleted_at', { mode: 'date' }),
+  deletedById: text('deleted_by_id'),
+  // System fields
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
+// ===== ERP SUPPLY CHAIN SCHEMA =====
+// Supplier management for ERP system
+export const supplierSchema = pgTable('supplier', {
+  id: serial('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organizationSchema.id, { onDelete: 'cascade' }),
+  supplierCode: varchar('supplier_code', { length: 20 }).notNull(),
+  companyName: text('company_name').notNull(),
+  contactPerson: text('contact_person'),
+  email: text('email'),
+  phone: text('phone'),
+  address: text('address'),
+  taxCode: varchar('tax_code', { length: 20 }),
+  isActive: boolean('is_active').default(true).notNull(),
+  // ERP Audit Trail fields
+  createdById: text('created_by_id'),
+  updatedById: text('updated_by_id'),
+  version: integer('version').default(1).notNull(),
+  // ERP Soft Delete fields
+  deletedAt: timestamp('deleted_at', { mode: 'date' }),
+  deletedById: text('deleted_by_id'),
+  // System fields
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
+// Inventory items for ERP system
+export const inventoryItemSchema = pgTable('inventory_item', {
+  id: serial('id').primaryKey(),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organizationSchema.id, { onDelete: 'cascade' }),
+  itemCode: varchar('item_code', { length: 20 }).notNull(),
+  itemName: text('item_name').notNull(),
+  category: text('category'),
+  unitOfMeasure: varchar('unit_of_measure', { length: 10 }),
+  unitCost: bigint('unit_cost', { mode: 'number' }),
+  currentStock: integer('current_stock').default(0).notNull(),
+  minStockLevel: integer('min_stock_level').default(0).notNull(),
+  isActive: boolean('is_active').default(true).notNull(),
+  // ERP Audit Trail fields
+  createdById: text('created_by_id'),
+  updatedById: text('updated_by_id'),
+  version: integer('version').default(1).notNull(),
+  // ERP Soft Delete fields
+  deletedAt: timestamp('deleted_at', { mode: 'date' }),
+  deletedById: text('deleted_by_id'),
+  // System fields
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
     .$onUpdate(() => new Date())

@@ -1,10 +1,33 @@
-# Free and Open Source SaaS Boilerplate with Tailwind CSS and Shadcn UI
+# 🏗️ SiteFlow - Construction Project Management ERP
 
 <p align="center">
-  <a href="https://react-saas.com"><img height="300" src="public/assets/images/nextjs-starter-banner.png?raw=true" alt="Next.js SaaS Template"></a>
+  <a href="https://react-saas.com"><img height="300" src="public/assets/images/nextjs-starter-banner.png?raw=true" alt="SiteFlow ERP System"></a>
 </p>
 
-🚀 **SaaS Boilerplate** is a powerful and fully customizable template to kickstart your SaaS applications. Built with **Next.js** and **Tailwind CSS**, and the modular UI components of **Shadcn UI**. This **Next.js SaaS Template** helps you to quickly build and launch SaaS with minimal effort.
+🚀 **SiteFlow** is a comprehensive Construction Project Management ERP system built on the powerful **Next.js SaaS Boilerplate**. It combines project management, financial tracking, human resources, and supply chain management in one integrated platform.
+
+## 🤖 Cursor AI Setup
+
+If you're using Cursor AI, please read these files for context:
+
+1. **`CURSOR_AI_CONTEXT_GUIDE.md`** - Complete project context and architecture
+2. **`DEVELOPMENT_STATUS.md`** - Current development status and next steps  
+3. **`CURSOR_AI_SETUP_INSTRUCTIONS.md`** - Quick setup instructions for Cursor AI
+
+## 📊 Current Project Status
+
+**SiteFlow** is currently transitioning from MVP to full ERP system:
+
+- ✅ **MVP Complete**: Project management, daily logs, photo management, PWA
+- ✅ **ERP Foundation**: Database schema, API architecture, state management
+- ✅ **ERP Readiness Score**: 8.8/10
+- 🔄 **Next Phase**: ERP Module Development (Financial, HR, Supply Chain)
+
+---
+
+## 🚀 **SaaS Boilerplate** (Base Template)
+
+This project is built on the powerful and fully customizable **SaaS Boilerplate** template to kickstart SaaS applications. Built with **Next.js** and **Tailwind CSS**, and the modular UI components of **Shadcn UI**.
 
 Packed with essential features like built-in **Authentication**, **Multi-Tenancy** with Team support, **Role & Permission**, Database, I18n (internationalization), Landing Page, User Dashboard, Form handling, SEO optimization, Logging, Error reporting with [Sentry](https://sentry.io/for/nextjs/?utm_source=github&utm_medium=paid-community&utm_campaign=general-fy25q1-nextjs&utm_content=github-banner-nextjsboilerplate-logo), Testing, Deployment, Monitoring, and **User Impersonation**, this SaaS template provides everything you need to get started.
 

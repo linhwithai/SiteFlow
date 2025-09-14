@@ -1,6 +1,6 @@
 'use client';
 
-import { BarChart3, Building2, Calendar, ChevronDown, ClipboardList, FileText, HelpCircle, Home, Menu, MessageCircle, PlusIcon, Settings, Users, X } from 'lucide-react';
+import { Building2, Calendar, ChevronDown, ClipboardList, HelpCircle, Home, Menu, MessageCircle, PlusIcon, Settings, Users, X, Camera, PieChart, MapPin, Wrench } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -9,42 +9,60 @@ import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { cn } from '@/utils/Helpers';
 
-const navigation = [
+// Main navigation - Core features
+const mainNavigation = [
   {
-    name: 'Trang chủ',
+    name: 'Dashboard',
     href: '/dashboard',
     icon: Home,
+    description: 'Tổng quan hệ thống',
   },
   {
-    name: 'Tổng quan',
-    href: '/dashboard/overview',
-    icon: BarChart3,
-  },
-  {
-    name: 'Quản lý dự án',
+    name: 'Dự án',
     href: '/dashboard/projects',
     icon: Building2,
+    description: 'Quản lý dự án xây dựng',
   },
   {
-    name: 'Nhật ký công trình',
+    name: 'Nhật ký',
     href: '/dashboard/daily-logs',
     icon: ClipboardList,
+    description: 'Nhật ký công trình hàng ngày',
   },
+  {
+    name: 'Thư viện ảnh',
+    href: '/dashboard/photos',
+    icon: Camera,
+    description: 'Quản lý ảnh và tài liệu',
+  },
+];
+
+// Secondary navigation - Analysis & Planning
+const secondaryNavigation = [
   {
     name: 'Báo cáo',
     href: '/dashboard/reports',
-    icon: FileText,
+    icon: PieChart,
+    description: 'Báo cáo và thống kê',
   },
   {
     name: 'Lịch',
     href: '/dashboard/calendar',
     icon: Calendar,
+    description: 'Lịch làm việc và sự kiện',
+  },
+  {
+    name: 'Bản đồ',
+    href: '/dashboard/map',
+    icon: MapPin,
+    description: 'Vị trí dự án trên bản đồ',
   },
 ];
 
-const settingsMenu = [
+// Organization management
+const organizationMenu = [
   {
-    name: 'Quản lý tổ chức',
+    name: 'Thông tin tổ chức',
     href: '/dashboard/organization',
     icon: Building2,
   },
@@ -56,20 +74,24 @@ const settingsMenu = [
   {
     name: 'Cài đặt tổ chức',
     href: '/dashboard/organization-profile',
-    icon: Settings,
+    icon: Wrench,
   },
+];
+
+// System settings
+const systemMenu = [
   {
-    name: 'Phàn nàn - Góp ý',
-    href: '/dashboard/feedback',
-    icon: MessageCircle,
-  },
-  {
-    name: 'Thiết lập',
+    name: 'Cài đặt hệ thống',
     href: '/dashboard/settings',
     icon: Settings,
   },
   {
-    name: 'Trung tâm trợ giúp',
+    name: 'Phản hồi',
+    href: '/dashboard/feedback',
+    icon: MessageCircle,
+  },
+  {
+    name: 'Trợ giúp',
     href: '/dashboard/help',
     icon: HelpCircle,
   },
@@ -78,7 +100,8 @@ const settingsMenu = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(true); // Mặc định mở
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isOrganizationOpen, setIsOrganizationOpen] = useState(false);
+  const [isSystemOpen, setIsSystemOpen] = useState(false);
 
   const toggle = () => setIsOpen(!isOpen);
 
@@ -121,23 +144,31 @@ export function DashboardSidebar() {
           {/* Content */}
           <div className="flex flex-1 flex-col overflow-y-auto pb-4 pt-5">
             <nav className="mt-5 flex-1 space-y-1 px-2">
-              {/* Main Navigation */}
+              {/* Main Navigation - Core Features */}
               <div className="space-y-1">
-                {navigation.map((item) => {
+                <div className="px-3 py-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Chức năng chính
+                  </h3>
+                </div>
+                {mainNavigation.map((item) => {
                   const isActive = pathname === item.href;
                   return (
                     <Link key={item.name} href={item.href}>
                       <Button
                         variant={isActive ? 'default' : 'ghost'}
                         className={cn(
-                          'w-full justify-start text-left',
+                          'w-full justify-start text-left h-12',
                           isActive
                             ? 'bg-blue-600 text-white'
                             : 'text-gray-300 hover:text-white hover:bg-gray-800',
                         )}
                       >
                         <item.icon className="mr-3 size-5" />
-                        {item.name}
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-xs text-gray-400">{item.description}</span>
+                        </div>
                       </Button>
                     </Link>
                   );
@@ -147,8 +178,85 @@ export function DashboardSidebar() {
               {/* Divider */}
               <div className="my-4 border-t border-gray-700" />
 
-              {/* Settings Menu with Collapsible */}
-              <Collapsible open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+              {/* Secondary Navigation - Analysis & Planning */}
+              <div className="space-y-1">
+                <div className="px-3 py-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Phân tích & Lập kế hoạch
+                  </h3>
+                </div>
+                {secondaryNavigation.map((item) => {
+                  const isActive = pathname === item.href;
+                  return (
+                    <Link key={item.name} href={item.href}>
+                      <Button
+                        variant={isActive ? 'default' : 'ghost'}
+                        className={cn(
+                          'w-full justify-start text-left h-12',
+                          isActive
+                            ? 'bg-blue-600 text-white'
+                            : 'text-gray-300 hover:text-white hover:bg-gray-800',
+                        )}
+                      >
+                        <item.icon className="mr-3 size-5" />
+                        <div className="flex flex-col items-start">
+                          <span className="font-medium">{item.name}</span>
+                          <span className="text-xs text-gray-400">{item.description}</span>
+                        </div>
+                      </Button>
+                    </Link>
+                  );
+                })}
+              </div>
+
+              {/* Divider */}
+              <div className="my-4 border-t border-gray-700" />
+
+              {/* Organization Management */}
+              <Collapsible open={isOrganizationOpen} onOpenChange={setIsOrganizationOpen}>
+                <CollapsibleTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-between text-gray-300 hover:bg-gray-800 hover:text-white"
+                  >
+                    <div className="flex items-center">
+                      <Building2 className="mr-3 size-5" />
+                      <span className="text-sm font-medium">Tổ chức</span>
+                    </div>
+                    <ChevronDown
+                      className={cn(
+                        'size-4 transition-transform',
+                        isOrganizationOpen && 'rotate-180',
+                      )}
+                    />
+                  </Button>
+                </CollapsibleTrigger>
+
+                <CollapsibleContent className="ml-4 space-y-1">
+                  {organizationMenu.map((item) => {
+                    const isActive = pathname === item.href;
+                    return (
+                      <Link key={item.name} href={item.href}>
+                        <Button
+                          variant={isActive ? 'default' : 'ghost'}
+                          className={cn(
+                            'w-full justify-start text-left text-sm',
+                            isActive
+                              ? 'bg-blue-600 text-white'
+                              : 'text-gray-300 hover:text-white hover:bg-gray-800',
+                          )}
+                        >
+                          <item.icon className="mr-3 size-4" />
+                          {item.name}
+                        </Button>
+                      </Link>
+                    );
+                  })}
+                </CollapsibleContent>
+              </Collapsible>
+
+              {/* System Settings */}
+              <Collapsible open={isSystemOpen} onOpenChange={setIsSystemOpen}>
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
@@ -156,21 +264,19 @@ export function DashboardSidebar() {
                   >
                     <div className="flex items-center">
                       <Settings className="mr-3 size-5" />
-                      <span className="text-sm font-medium">
-                        Cài đặt
-                      </span>
+                      <span className="text-sm font-medium">Hệ thống</span>
                     </div>
                     <ChevronDown
                       className={cn(
                         'size-4 transition-transform',
-                        isSettingsOpen && 'rotate-180',
+                        isSystemOpen && 'rotate-180',
                       )}
                     />
                   </Button>
                 </CollapsibleTrigger>
 
                 <CollapsibleContent className="ml-4 space-y-1">
-                  {settingsMenu.map((item) => {
+                  {systemMenu.map((item) => {
                     const isActive = pathname === item.href;
                     return (
                       <Link key={item.name} href={item.href}>
@@ -193,12 +299,23 @@ export function DashboardSidebar() {
               </Collapsible>
             </nav>
 
-            {/* Quick Action */}
-            <div className="px-2 pb-4">
+            {/* Quick Actions */}
+            <div className="px-2 pb-4 space-y-2">
+              <div className="px-3 py-2">
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  Thao tác nhanh
+                </h3>
+              </div>
               <Link href="/dashboard/projects/new">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700">
                   <PlusIcon className="mr-2 size-4" />
                   Tạo dự án mới
+                </Button>
+              </Link>
+              <Link href="/dashboard/daily-logs/new">
+                <Button variant="outline" className="w-full border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">
+                  <ClipboardList className="mr-2 size-4" />
+                  Ghi nhật ký
                 </Button>
               </Link>
             </div>

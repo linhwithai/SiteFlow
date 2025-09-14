@@ -24,13 +24,29 @@ const isApiRoute = createRouteMatcher([
   '/:locale/api(.*)',
 ]);
 
+const isPublicApiRoute = createRouteMatcher([
+  '/api/health',
+  '/api/webhooks/bot',
+  '/api/webhooks/clerk',
+  '/api/upload',
+]);
+
 export default function middleware(
   request: NextRequest,
   event: NextFetchEvent,
 ) {
-  // Skip middleware for API routes that don't need auth
+  // Handle API routes
   if (isApiRoute(request)) {
-    return NextResponse.next();
+    // Allow public API routes without authentication
+    if (isPublicApiRoute(request)) {
+      return NextResponse.next();
+    }
+    
+    // Protect other API routes with Clerk authentication
+    return clerkMiddleware(async (auth, _req) => {
+      await auth.protect();
+      return NextResponse.next();
+    })(request, event);
   }
 
   if (
@@ -38,7 +54,7 @@ export default function middleware(
     || request.nextUrl.pathname.includes('/sign-up')
     || isProtectedRoute(request)
   ) {
-    return clerkMiddleware(async (auth, req) => {
+    return clerkMiddleware(async (auth, _req) => {
       if (isProtectedRoute(req)) {
         const locale
           = req.nextUrl.pathname.match(/(\/.*)\/dashboard/)?.at(1) ?? '';

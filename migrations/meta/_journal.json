@@ -36,6 +36,13 @@
       "when": 1757818851489,
       "tag": "0004_fixed_zarek",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1757837601418,
+      "tag": "0005_zippy_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

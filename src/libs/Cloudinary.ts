@@ -9,7 +9,7 @@ cloudinary.config({
 
 export { cloudinary };
 
-// Helper function to upload image
+// Helper function to upload image with watermark
 export async function uploadImage(
   file: File | Buffer,
   folder: string = 'siteflow',
@@ -17,12 +17,15 @@ export async function uploadImage(
     public_id?: string;
     transformation?: any;
     tags?: string[];
+    addWatermark?: boolean;
+    watermarkText?: string;
   } = {},
 ): Promise<{
     public_id: string;
     secure_url: string;
     width: number;
     height: number;
+    thumbnail_url?: string;
   }> {
   try {
     // Check if Cloudinary is properly configured
@@ -41,12 +44,51 @@ export async function uploadImage(
       fileData = `data:image/jpeg;base64,${base64}`;
     }
 
+    // Default transformation with watermark
+    const defaultTransformation = options.addWatermark !== false ? [
+      {
+        overlay: {
+          font_family: 'Arial',
+          font_size: 20,
+          font_weight: 'bold',
+          text: options.watermarkText || 'SiteFlow',
+        },
+        color: 'white',
+        gravity: 'south_east',
+        x: 20,
+        y: 20,
+      },
+      {
+        overlay: {
+          font_family: 'Arial',
+          font_size: 20,
+          font_weight: 'bold',
+          text: options.watermarkText || 'SiteFlow',
+        },
+        color: 'black',
+        gravity: 'south_east',
+        x: 22,
+        y: 22,
+      },
+    ] : [];
+
+    const finalTransformation = options.transformation || defaultTransformation;
+
     const result = await cloudinary.uploader.upload(fileData, {
       folder,
       public_id: options.public_id,
-      transformation: options.transformation,
+      transformation: finalTransformation,
       tags: options.tags,
       resource_type: 'auto',
+    });
+
+    // Generate thumbnail URL
+    const thumbnailUrl = cloudinary.url(result.public_id, {
+      width: 300,
+      height: 200,
+      crop: 'fill',
+      quality: 'auto',
+      format: 'auto',
     });
 
     return {
@@ -54,6 +96,7 @@ export async function uploadImage(
       secure_url: result.secure_url,
       width: result.width,
       height: result.height,
+      thumbnail_url: thumbnailUrl,
     };
   } catch (error) {
     console.error('Error uploading to Cloudinary:', error);
