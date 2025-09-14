@@ -1,17 +1,20 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
-import { CalendarIcon, DollarSignIcon, FileTextIcon, MapPinIcon, UserIcon } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { CalendarIcon, DollarSignIcon, FileTextIcon, ImageIcon, InfoIcon, MapPinIcon, UserIcon } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 
+import { PhotoUpload } from '@/components/PhotoUpload';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { usePhotoUpload } from '@/hooks/usePhotoUpload';
 import { PROJECT_STATUS } from '@/types/Enum';
 import type { CreateProjectRequest, Project, UpdateProjectRequest } from '@/types/Project';
 
@@ -48,6 +51,20 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+
+  // Photo upload state
+  const {
+    photos,
+    isUploading: isUploadingPhoto,
+    error: photoError,
+    uploadPhoto,
+    clearError: clearPhotoError,
+    loadPhotos,
+  } = usePhotoUpload({
+    projectId: project?.id ? Number(project.id) : undefined,
+    folder: project ? `projects/${project.id}` : 'projects',
+    tags: ['project', project?.name || 'new-project'],
+  });
 
   const {
     register,
@@ -90,6 +107,13 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
 
     fetchUsers();
   }, []);
+
+  // Load photos when component mounts in edit mode
+  useEffect(() => {
+    if (project?.id) {
+      loadPhotos();
+    }
+  }, [project?.id, loadPhotos]);
 
   const handleFormSubmit = async (data: ProjectFormData) => {
     setIsSubmitting(true);
@@ -134,12 +158,30 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
-          {/* Basic Information */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <FileTextIcon className="size-5 text-gray-600" />
-              <h3 className="text-lg font-medium">Thông tin cơ bản</h3>
-            </div>
+          <Tabs defaultValue="basic" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="basic" className="flex items-center gap-2">
+                <InfoIcon className="size-4" />
+                Thông tin cơ bản
+              </TabsTrigger>
+              <TabsTrigger value="photos" className="flex items-center gap-2">
+                <ImageIcon className="size-4" />
+                Hình ảnh
+                {photos.length > 0 && (
+                  <span className="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
+                    {photos.length}
+                  </span>
+                )}
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="basic" className="space-y-6">
+              {/* Basic Information */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <FileTextIcon className="size-5 text-gray-600" />
+                  <h3 className="text-lg font-medium">Thông tin cơ bản</h3>
+                </div>
 
             <div className="space-y-2">
               <Label htmlFor="name">Tên dự án *</Label>
@@ -336,23 +378,60 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
             </div>
           )}
 
+            </TabsContent>
+
+            <TabsContent value="photos" className="space-y-6">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-medium">Hình ảnh dự án</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Upload hình ảnh liên quan đến dự án. Hỗ trợ JPEG, PNG, WebP, GIF (tối đa 10MB mỗi ảnh).
+                  </p>
+                </div>
+
+                <PhotoUpload
+                  onUpload={uploadPhoto}
+                  photos={photos}
+                  maxFiles={20}
+                  folder={project ? `projects/${project.id}` : 'projects'}
+                  tags={['project', watch('name') || 'new-project']}
+                  disabled={isUploadingPhoto}
+                />
+
+                {photoError && (
+                  <div className="rounded-lg border border-red-200 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950">
+                    <p className="text-sm text-red-600 dark:text-red-400">{photoError}</p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={clearPhotoError}
+                      className="mt-2"
+                    >
+                      Xóa lỗi
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+
           {/* Actions */}
           <div className="flex justify-end gap-3 border-t pt-6">
             <Button
               type="button"
               variant="outline"
               onClick={onCancel}
-              disabled={isSubmitting || isLoading}
+              disabled={isSubmitting || isLoading || isUploadingPhoto}
               className="min-w-[100px]"
             >
               Hủy
             </Button>
             <Button
               type="submit"
-              disabled={isSubmitting || isLoading}
+              disabled={isSubmitting || isLoading || isUploadingPhoto}
               className="min-w-[120px] bg-blue-600 hover:bg-blue-700"
             >
-              {isSubmitting || isLoading
+              {isSubmitting || isLoading || isUploadingPhoto
                 ? (
                     <div className="flex items-center gap-2">
                       <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>

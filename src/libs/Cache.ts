@@ -231,7 +231,9 @@ export class CacheManager {
     
     for (let i = 0; i < toRemove; i++) {
       if (entries[i]) {
-        this.store.delete(entries[i][0]);
+        if (entries[i]) {
+          this.store.delete(entries[i][0]);
+        }
       }
     }
 

@@ -477,6 +477,61 @@ export function PhotoUpload({
         </div>
       )}
 
+      {/* Uploaded Photos Gallery */}
+      {photos.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+            Ảnh đã upload ({photos.length})
+          </h4>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {photos.map((photo, index) => (
+              <div key={photo.id || index} className="group relative">
+                <div className="aspect-square overflow-hidden rounded-lg border border-gray-200 bg-gray-100 dark:border-gray-700 dark:bg-gray-800">
+                  <img
+                    src={photo.url}
+                    alt={photo.name}
+                    className="size-full object-cover transition-transform group-hover:scale-105"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="absolute inset-0 rounded-lg bg-black bg-opacity-0 transition-all group-hover:bg-opacity-30">
+                  <div className="flex h-full items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex gap-1">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="size-8 p-0"
+                        onClick={() => window.open(photo.url, '_blank')}
+                        title="Xem ảnh gốc"
+                      >
+                        <ImageIcon className="size-4" />
+                      </Button>
+                      {_onRemove && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="size-8 p-0"
+                          onClick={() => _onRemove(index)}
+                          title="Xóa ảnh"
+                        >
+                          <X className="size-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-1 truncate text-xs text-gray-600 dark:text-gray-400">
+                  {photo.name}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {(photo.size / 1024 / 1024).toFixed(1)} MB
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Empty State */}
       {photos.length === 0 && !isUploading && (
         <div className="py-8 text-center">

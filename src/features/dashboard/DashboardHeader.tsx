@@ -1,9 +1,11 @@
 'use client';
 
-import { UserButton } from '@clerk/nextjs';
+// Temporarily disable Clerk UserButton for testing
+// import { UserButton } from '@clerk/nextjs';
 
 import { LocaleSwitcher } from '@/components/LocaleSwitcher';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 
 export const DashboardHeader = () => {
   return (
@@ -21,17 +23,13 @@ export const DashboardHeader = () => {
           </li>
 
           <li>
-            <UserButton
-              userProfileMode="navigation"
-              userProfileUrl="/dashboard/user-profile"
-              appearance={{
-                elements: {
-                  rootBox: 'px-2 py-1.5 text-white',
-                  userButtonPopoverCard: 'bg-white',
-                  userButtonPopoverActionButton: 'text-gray-900',
-                },
-              }}
-            />
+            {/* Temporarily replace UserButton with simple button for testing */}
+            <Button 
+              variant="ghost" 
+              className="px-2 py-1.5 text-white hover:bg-gray-700"
+            >
+              Test User
+            </Button>
           </li>
         </ul>
       </div>

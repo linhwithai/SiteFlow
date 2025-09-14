@@ -17,21 +17,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { usePhotoUpload } from '@/hooks/usePhotoUpload';
+import { cn } from '@/libs/utils';
 import { PROJECT_STATUS } from '@/types/Enum';
 import type { CreateProjectRequest, Project, UpdateProjectRequest } from '@/types/Project';
-import { cn } from '@/utils/Helpers';
 
 const projectSchema = z.object({
-  name: z.string().min(1, 'Tên dự án là bắt buộc').max(255, 'Tên dự án quá dài'),
-  description: z.string().max(1000, 'Mô tả quá dài').optional(),
-  address: z.string().max(500, 'Địa chỉ quá dài').optional(),
-  city: z.string().max(100, 'Tên thành phố quá dài').optional(),
-  province: z.string().max(100, 'Tên tỉnh quá dài').optional(),
+  name: z.string().min(1, 'Tên dự án là bắt buộc'),
+  description: z.string().optional(),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  province: z.string().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
   budget: z.string().optional(),
   projectManagerId: z.string().optional(),
-  status: z.string().optional(),
+  status: z.nativeEnum(PROJECT_STATUS).optional(),
 });
 
 type ProjectFormData = z.infer<typeof projectSchema>;
@@ -48,8 +48,10 @@ type ProjectModalProps = {
   onClose: () => void;
   onSave: (data: CreateProjectRequest | UpdateProjectRequest) => Promise<void>;
   users: User[];
-  project?: Project | null; // null = create mode, Project = edit mode
+  project?: Project | null;
   isLoading?: boolean;
+  onPhotosReady?: (photos: any[]) => void; // Callback for photos that need to be saved
+  onUploadStateChange?: (isUploading: boolean) => void; // Callback for upload state changes
 };
 
 const statusLabels = {
@@ -60,9 +62,9 @@ const statusLabels = {
   [PROJECT_STATUS.CANCELLED]: 'Hủy bỏ',
 };
 
-export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoading = false }: ProjectModalProps) {
-  // Force re-render to avoid cache issues
-  const version = React.useMemo(() => Date.now(), [isOpen]);
+export function ProjectModalFixed({ isOpen, onClose, onSave, users, project, isLoading = false, onPhotosReady, onUploadStateChange }: ProjectModalProps) {
+  console.log('🔍 ProjectModalFixed rendered, isOpen:', isOpen);
+  
   const isEditMode = !!project;
 
   const form = useForm<ProjectFormData>({
@@ -73,59 +75,129 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
       address: project?.address || '',
       city: project?.city || '',
       province: project?.province || '',
-      startDate: project?.startDate ? new Date(project.startDate).toISOString().split('T')[0] : '',
-      endDate: project?.endDate ? new Date(project.endDate).toISOString().split('T')[0] : '',
+      startDate: project?.startDate ? project.startDate.split('T')[0] : '',
+      endDate: project?.endDate ? project.endDate.split('T')[0] : '',
       budget: project?.budget?.toString() || '',
       projectManagerId: project?.projectManagerId || 'none',
       status: project?.status || PROJECT_STATUS.PLANNING,
     },
   });
 
-  // Photo upload state
+  // Photo upload state using usePhotoUpload hook
   const {
     photos,
     isUploading: isUploadingPhoto,
     error: photoError,
     uploadPhoto,
     clearError: clearPhotoError,
-    loadPhotos,
   } = usePhotoUpload({
-    projectId: project?.id ? Number(project.id) : undefined,
     folder: project ? `projects/${project.id}` : 'projects',
-    tags: ['project', project?.name || 'new-project'],
+    tags: ['project', form.watch('name') || 'new-project'],
+    projectId: project?.id ? Number(project.id) : undefined,
   });
+
+  // Notify parent component about upload state changes
+  React.useEffect(() => {
+    if (onUploadStateChange) {
+      onUploadStateChange(isUploadingPhoto);
+    }
+  }, [isUploadingPhoto, onUploadStateChange]);
+
+  // For new projects, we need to handle photos differently
+  // Store photos that will be saved after project creation
+  const [pendingPhotos, setPendingPhotos] = React.useState<any[]>([]);
+
+  // Custom photo upload handler for new projects
+  const handlePhotoUploadForNewProject = async (file: File) => {
+    try {
+      // Upload to Cloudinary first
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', 'projects');
+      formData.append('tags', ['project', form.watch('name') || 'new-project'].join(','));
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        throw new Error('Upload failed');
+      }
+
+      const result = await response.json();
+      
+      // Store photo data to be saved after project creation
+      const photoData = {
+        id: result.data.publicId,
+        url: result.data.url,
+        publicId: result.data.publicId,
+        name: result.data.originalName,
+        size: result.data.size,
+        uploadedAt: new Date(),
+        tags: ['project', form.watch('name') || 'new-project'],
+      };
+
+      setPendingPhotos(prev => [...prev, photoData]);
+      console.log('📸 Photo uploaded and stored for later save:', photoData);
+      
+    } catch (error) {
+      console.error('❌ Photo upload error:', error);
+      throw error;
+    }
+  };
+
+  // Use appropriate upload handler based on mode
+  const photoUploadHandler = isEditMode ? uploadPhoto : handlePhotoUploadForNewProject;
+  const displayPhotos = isEditMode ? photos : pendingPhotos;
 
   const handleSubmit = async (data: ProjectFormData) => {
     try {
       if (isEditMode) {
-        // Edit mode - return UpdateProjectRequest
         const submitData: UpdateProjectRequest = {
           name: data.name,
-          description: data.description || undefined,
-          address: data.address || undefined,
-          city: data.city || undefined,
-          province: data.province || undefined,
+          description: data.description,
+          address: data.address,
+          city: data.city,
+          province: data.province,
           startDate: data.startDate || undefined,
           endDate: data.endDate || undefined,
           budget: data.budget ? Number.parseFloat(data.budget) : undefined,
           projectManagerId: data.projectManagerId === 'none' ? undefined : data.projectManagerId,
-          status: data.status as any,
+          status: data.status,
         };
         await onSave(submitData);
       } else {
-        // Create mode - return CreateProjectRequest
         const submitData: CreateProjectRequest = {
           name: data.name,
-          description: data.description || undefined,
-          address: data.address || undefined,
-          city: data.city || undefined,
-          province: data.province || undefined,
+          description: data.description,
+          address: data.address,
+          city: data.city,
+          province: data.province,
           startDate: data.startDate || undefined,
           endDate: data.endDate || undefined,
           budget: data.budget ? Number.parseFloat(data.budget) : undefined,
           projectManagerId: data.projectManagerId === 'none' ? undefined : data.projectManagerId,
         };
+        
+        // For new projects, we need to handle photos after project creation
+        const uploadedPhotos = [...pendingPhotos]; // Store current photos before clearing
+        
         await onSave(submitData);
+        
+        // Save photos to database after project creation
+        if (uploadedPhotos.length > 0) {
+          console.log('📸 Photos to be saved after project creation:', uploadedPhotos);
+          // Notify parent component about photos that need to be saved
+          if (onPhotosReady) {
+            console.log('📤 Calling onPhotosReady with photos:', uploadedPhotos);
+            onPhotosReady(uploadedPhotos);
+          } else {
+            console.log('❌ onPhotosReady callback is not provided');
+          }
+        } else {
+          console.log('ℹ️ No photos to save');
+        }
       }
       form.reset();
     } catch (error) {
@@ -137,13 +209,6 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
     form.reset();
     onClose();
   };
-
-  // Load photos when modal opens in edit mode
-  React.useEffect(() => {
-    if (isOpen && isEditMode && project?.id) {
-      loadPhotos();
-    }
-  }, [isOpen, isEditMode, project?.id, loadPhotos]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -168,9 +233,9 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
                 <TabsTrigger value="photos" className="flex items-center gap-2">
                   <ImageIcon className="size-4" />
                   Hình ảnh
-                  {photos.length > 0 && (
+                  {displayPhotos.length > 0 && (
                     <span className="ml-1 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">
-                      {photos.length}
+                      {displayPhotos.length}
                     </span>
                   )}
                 </TabsTrigger>
@@ -281,9 +346,7 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
                                 )}
                               >
                                 {field.value
-                                  ? (
-                                      new Date(field.value).toLocaleDateString('vi-VN')
-                                    )
+                                  ? (new Date(field.value)).toLocaleDateString('vi-VN')
                                   : (
                                       <span>Chọn ngày bắt đầu</span>
                                     )}
@@ -324,9 +387,7 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
                                 )}
                               >
                                 {field.value
-                                  ? (
-                                      new Date(field.value).toLocaleDateString('vi-VN')
-                                    )
+                                  ? (new Date(field.value)).toLocaleDateString('vi-VN')
                                   : (
                                       <span>Chọn ngày kết thúc</span>
                                     )}
@@ -440,8 +501,8 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
                   </div>
 
                   <PhotoUpload
-                    onUpload={uploadPhoto}
-                    photos={photos}
+                    onUpload={photoUploadHandler}
+                    photos={displayPhotos}
                     maxFiles={20}
                     folder={project ? `projects/${project.id}` : 'projects'}
                     tags={['project', form.watch('name') || 'new-project']}
@@ -472,7 +533,7 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
               <Button type="submit" disabled={isLoading || isUploadingPhoto}>
                 {isLoading && <Loader2 className="mr-2 size-4 animate-spin" />}
                 {isUploadingPhoto && <Loader2 className="mr-2 size-4 animate-spin" />}
-                {isEditMode ? 'Cập nhật dự án' : 'Tạo dự án'}
+                {isEditMode ? 'Cập nhật dự án' : (isLoading ? 'Đang tạo...' : 'Tạo dự án')}
               </Button>
             </DialogFooter>
           </form>
@@ -481,3 +542,4 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
     </Dialog>
   );
 }
+

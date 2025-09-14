@@ -48,7 +48,7 @@ type ProjectModalProps = {
   onClose: () => void;
   onSave: (data: CreateProjectRequest | UpdateProjectRequest) => Promise<void>;
   users: User[];
-  project?: Project | null; // null = create mode, Project = edit mode
+  project?: Project | null;
   isLoading?: boolean;
 };
 
@@ -60,9 +60,7 @@ const statusLabels = {
   [PROJECT_STATUS.CANCELLED]: 'Hủy bỏ',
 };
 
-export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoading = false }: ProjectModalProps) {
-  // Force re-render to avoid cache issues
-  const version = React.useMemo(() => Date.now(), [isOpen]);
+export function ProjectModalSimple({ isOpen, onClose, onSave, users, project, isLoading = false }: ProjectModalProps) {
   const isEditMode = !!project;
 
   const form = useForm<ProjectFormData>({
@@ -81,24 +79,104 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
     },
   });
 
-  // Photo upload state
-  const {
-    photos,
-    isUploading: isUploadingPhoto,
-    error: photoError,
-    uploadPhoto,
-    clearError: clearPhotoError,
-    loadPhotos,
-  } = usePhotoUpload({
-    projectId: project?.id ? Number(project.id) : undefined,
-    folder: project ? `projects/${project.id}` : 'projects',
-    tags: ['project', project?.name || 'new-project'],
-  });
+  // Photo upload state - simplified
+  const [photos, setPhotos] = React.useState<any[]>([]);
+  const [isUploadingPhoto, setIsUploadingPhoto] = React.useState(false);
+  const [photoError, setPhotoError] = React.useState<string | null>(null);
+
+  const handlePhotoUpload = async (file: File) => {
+    setIsUploadingPhoto(true);
+    setPhotoError(null);
+    
+    try {
+      // Validate file before upload
+      if (!file.type.startsWith('image/')) {
+        throw new Error('File phải là ảnh');
+      }
+
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('File quá lớn. Kích thước tối đa là 10MB');
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('folder', project ? `projects/${project.id}` : 'projects');
+      formData.append('tags', ['project', form.watch('name') || 'new-project'].join(','));
+
+      const response = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) {
+        let errorMessage = 'Upload failed';
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.error || errorMessage;
+        } catch {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      const result = await response.json();
+
+      const photo = {
+        id: result.data.publicId,
+        url: result.data.url,
+        publicId: result.data.publicId,
+        name: result.data.originalName,
+        size: result.data.size,
+        uploadedAt: new Date(),
+        tags: ['project', form.watch('name') || 'new-project'],
+      };
+
+      // Save photo to database if projectId is provided
+      if (project?.id) {
+        try {
+          const saveResponse = await fetch(`/api/projects/${project.id}/photos`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              publicId: result.data.publicId,
+              url: result.data.url,
+              name: result.data.originalName,
+              size: result.data.size,
+              width: result.data.width,
+              height: result.data.height,
+              tags: ['project', form.watch('name') || 'new-project'],
+            }),
+          });
+
+          if (!saveResponse.ok) {
+            const errorData = await saveResponse.json();
+            throw new Error(errorData.error || 'Failed to save photo to database');
+          }
+
+          const saveResult = await saveResponse.json();
+          // Update photo with database ID
+          photo.id = saveResult.photo.id.toString();
+        } catch (saveError) {
+          console.error('Error saving photo to database:', saveError);
+          // Continue with local state even if database save fails
+          setPhotoError('Ảnh đã upload thành công nhưng có lỗi khi lưu vào cơ sở dữ liệu');
+        }
+      }
+
+      setPhotos(prev => [...prev, photo]);
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      setPhotoError(error instanceof Error ? error.message : 'Upload failed');
+    } finally {
+      setIsUploadingPhoto(false);
+    }
+  };
 
   const handleSubmit = async (data: ProjectFormData) => {
     try {
       if (isEditMode) {
-        // Edit mode - return UpdateProjectRequest
         const submitData: UpdateProjectRequest = {
           name: data.name,
           description: data.description || undefined,
@@ -113,7 +191,6 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
         };
         await onSave(submitData);
       } else {
-        // Create mode - return CreateProjectRequest
         const submitData: CreateProjectRequest = {
           name: data.name,
           description: data.description || undefined,
@@ -137,13 +214,6 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
     form.reset();
     onClose();
   };
-
-  // Load photos when modal opens in edit mode
-  React.useEffect(() => {
-    if (isOpen && isEditMode && project?.id) {
-      loadPhotos();
-    }
-  }, [isOpen, isEditMode, project?.id, loadPhotos]);
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
@@ -440,7 +510,7 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
                   </div>
 
                   <PhotoUpload
-                    onUpload={uploadPhoto}
+                    onUpload={handlePhotoUpload}
                     photos={photos}
                     maxFiles={20}
                     folder={project ? `projects/${project.id}` : 'projects'}
@@ -454,7 +524,7 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={clearPhotoError}
+                        onClick={() => setPhotoError(null)}
                         className="mt-2"
                       >
                         Xóa lỗi

@@ -1,9 +1,9 @@
 'use client';
 
 import { Building2, Edit, Eye, Filter, MoreHorizontal, Plus, Search, Trash2 } from 'lucide-react';
-import { useCallback, useEffect, useState } from 'react';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { ProjectModal } from '@/components/ProjectModal';
 import { ProjectStats } from '@/components/ProjectStats';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,8 +11,14 @@ import { Card, CardContent } from '@/components/ui/card';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ToastContainer, useToast } from '@/components/ui/toast';
 import { PROJECT_STATUS } from '@/types/Enum';
 import type { CreateProjectRequest, Project, ProjectFilters, ProjectListResponse, ProjectStats as ProjectStatsType, UpdateProjectRequest } from '@/types/Project';
+
+const ProjectModal = dynamic(() => import('@/components/ProjectModalFixed').then(mod => ({ default: mod.ProjectModalFixed })), {
+  ssr: false,
+  loading: () => null, // Remove loading component to avoid duplicate loading
+});
 
 type User = {
   id: string;
@@ -51,7 +57,24 @@ export default function ProjectsPage() {
   const [isFiltering, setIsFiltering] = useState(false);
   const [editingProject, setEditingProject] = useState<Project | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [cache, setCache] = useState<Map<string, ProjectListResponse>>(new Map());
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
+  const cacheRef = useRef<Map<string, ProjectListResponse>>(new Map());
+  const [pendingPhotos, setPendingPhotos] = useState<any[]>([]);
+
+  // Toast system
+  const { toasts, removeToast, success, error: showError } = useToast();
+
+  // Debug function to handle photos ready
+  const handlePhotosReady = (photos: any[]) => {
+    console.log('📥 Received photos from modal:', photos);
+    setPendingPhotos(photos);
+  };
+
+  // Handle upload state from modal
+  const handleUploadStateChange = (isUploading: boolean) => {
+    setIsUploadingPhotos(isUploading);
+  };
 
   const limit = 12;
 
@@ -62,27 +85,24 @@ export default function ProjectsPage() {
 
   // Clear cache when data changes
   const clearCache = () => {
-    setCache(new Map());
+    cacheRef.current.clear();
     console.log('🗑️ Cache cleared');
   };
 
   // Cache management with size limit
   const addToCache = (key: string, data: ProjectListResponse) => {
-    setCache((prev) => {
-      const newCache = new Map(prev);
+    const cache = cacheRef.current;
 
-      // Limit cache size to 50 entries
-      if (newCache.size >= 50) {
-        const firstKey = newCache.keys().next().value;
-        if (firstKey) {
-          newCache.delete(firstKey);
-        }
+    // Limit cache size to 50 entries
+    if (cache.size >= 50) {
+      const firstKey = cache.keys().next().value;
+      if (firstKey) {
+        cache.delete(firstKey);
       }
+    }
 
-      newCache.set(key, data);
-      console.log(`💾 Cached data for key: ${key} (Cache size: ${newCache.size})`);
-      return newCache;
-    });
+    cache.set(key, data);
+    console.log(`💾 Cached data for key: ${key} (Cache size: ${cache.size})`);
   };
 
   // Fetch users
@@ -107,7 +127,7 @@ export default function ProjectsPage() {
 
       // Check cache first
       const cacheKey = getCacheKey(filters, page);
-      const cachedData = cache.get(cacheKey);
+      const cachedData = cacheRef.current.get(cacheKey);
 
       if (cachedData) {
         console.log('🚀 Cache HIT for:', cacheKey);
@@ -148,7 +168,7 @@ export default function ProjectsPage() {
         setIsLoading(false);
       }
     }
-  }, [page, filters, limit, cache]);
+  }, [page, filters, limit]);
 
   // Fetch project stats
   const fetchStats = async () => {
@@ -194,9 +214,44 @@ export default function ProjectsPage() {
     return () => clearTimeout(timer);
   }, [searchInput, filters.search]);
 
+  // Function to save photos to database after project creation
+  const savePhotosToDatabase = async (projectId: number, photos: any[]) => {
+    console.log('💾 Saving photos to database for project:', projectId, photos);
+
+    for (const photo of photos) {
+      try {
+        const response = await fetch(`/api/projects/${projectId}/photos`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            publicId: photo.publicId,
+            url: photo.url,
+            name: photo.name,
+            size: photo.size,
+            width: 800, // Default width
+            height: 600, // Default height
+            tags: photo.tags || [],
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to save photo to database');
+        }
+
+        console.log('✅ Photo saved to database:', photo.name);
+      } catch (error) {
+        console.error('❌ Error saving photo to database:', photo.name, error);
+      }
+    }
+  };
+
   // Handle create project
   const handleCreateProject = async (data: CreateProjectRequest) => {
     try {
+      setIsCreatingProject(true);
+
       const response = await fetch('/api/projects', {
         method: 'POST',
         headers: {
@@ -209,14 +264,39 @@ export default function ProjectsPage() {
         throw new Error('Failed to create project');
       }
 
+      const newProject = await response.json();
+      console.log('✅ Project created successfully:', newProject);
+
+      // Save photos to database if there are any
+      console.log('🔍 Checking pending photos:', pendingPhotos.length, pendingPhotos);
+      if (pendingPhotos.length > 0) {
+        console.log('💾 Saving pending photos to database...');
+        await savePhotosToDatabase(newProject.id, pendingPhotos);
+        setPendingPhotos([]); // Clear pending photos
+      } else {
+        console.log('ℹ️ No pending photos to save');
+      }
+
       // Clear cache and refresh projects list and stats
+      console.log('🔄 Clearing cache and refreshing data...');
       clearCache();
+      console.log('📊 Current projects before refresh:', projects.length);
       await fetchProjects();
+      console.log('📊 Projects after refresh:', projects.length);
       await fetchStats();
+      console.log('✅ Data refresh completed');
+
+      // Close modal only after everything is done
       setIsCreateModalOpen(false);
+
+      // Show success toast
+      success('Tạo dự án thành công!', `Dự án "${newProject.name}" đã được tạo thành công.`);
     } catch (error) {
       console.error('Error creating project:', error);
+      showError('Lỗi tạo dự án', 'Không thể tạo dự án. Vui lòng thử lại.');
       throw error;
+    } finally {
+      setIsCreatingProject(false);
     }
   };
 
@@ -288,16 +368,23 @@ export default function ProjectsPage() {
 
   // Only fetch projects when filters change (without loading spinner)
   useEffect(() => {
+    // Skip if this is the initial render (filters are empty)
+    if (Object.keys(filters).length === 0) {
+      return;
+    }
+
     if (filters.search || filters.status) {
       setIsFiltering(true);
+      fetchProjects(false).finally(() => {
+        setIsFiltering(false);
+      });
     }
-    fetchProjects(false).finally(() => {
-      setIsFiltering(false);
-    });
-  }, [fetchProjects]);
+  }, [filters.search, filters.status]); // Only trigger when search or status changes
 
   return (
     <div className="space-y-6">
+      {/* Toast Container */}
+      <ToastContainer toasts={toasts} onRemove={removeToast} />
       {/* Header Section */}
       <div className="flex items-center justify-between">
         <div className="flex items-center">
@@ -310,15 +397,19 @@ export default function ProjectsPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button onClick={() => setIsCreateModalOpen(true)} className="bg-blue-600 hover:bg-blue-700">
+          <Button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="bg-blue-600 hover:bg-blue-700"
+            disabled={isCreatingProject || isUploadingPhotos}
+          >
             <Plus className="mr-2 size-4" />
-            Tạo dự án mới
+            {isCreatingProject ? 'Đang tạo...' : isUploadingPhotos ? 'Đang upload ảnh...' : 'Tạo dự án mới'}
           </Button>
         </div>
       </div>
 
       {/* Project Statistics */}
-      {stats && <ProjectStats stats={stats} isLoading={isStatsLoading} />}
+      {!isLoading && !isStatsLoading && stats && <ProjectStats stats={stats} isLoading={false} />}
 
       {/* Filters and Search */}
       <Card>
@@ -537,15 +628,20 @@ export default function ProjectsPage() {
 
       {/* Create Project Modal */}
       <ProjectModal
+        key={`create-${isCreateModalOpen ? 'open' : 'closed'}`}
         isOpen={isCreateModalOpen}
         onClose={() => setIsCreateModalOpen(false)}
         onSave={handleCreateProject as (data: CreateProjectRequest | UpdateProjectRequest) => Promise<void>}
         users={users}
         project={null}
+        onPhotosReady={handlePhotosReady}
+        onUploadStateChange={handleUploadStateChange}
+        isLoading={isCreatingProject}
       />
 
       {/* Edit Project Modal */}
       <ProjectModal
+        key={`edit-${editingProject?.id || 'none'}`}
         isOpen={!!editingProject}
         onClose={() => setEditingProject(null)}
         onSave={async (data) => {

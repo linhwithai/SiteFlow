@@ -4,7 +4,7 @@
  * POST /api/projects - Create new project
  */
 
-import { auth } from '@clerk/nextjs/server';
+// import { auth } from '@clerk/nextjs/server';
 import { and, desc, eq, ilike, or, sql } from 'drizzle-orm';
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
@@ -41,10 +41,12 @@ const querySchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId, orgId } = await auth();
-    if (!userId || !orgId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // For development, bypass Clerk auth as requested
+    // const { userId, orgId } = await auth();
+    // if (!userId || !orgId) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
+    const orgId = 'org_demo_1';
 
     // Parse query parameters
     const { searchParams } = new URL(request.url);
@@ -151,10 +153,12 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, orgId } = await auth();
-    if (!userId || !orgId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // For development, bypass Clerk auth as requested
+    // const { userId, orgId } = await auth();
+    // if (!userId || !orgId) {
+    //   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    // }
+    const orgId = 'org_demo_1';
 
     const body = await request.json();
     const validatedData = createProjectSchema.parse(body);
