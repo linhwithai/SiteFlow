@@ -1,6 +1,6 @@
-import { useTranslations } from 'next-intl';
 import { getTranslations } from 'next-intl/server';
 
+import { DashboardSidebar } from '@/components/DashboardSidebar';
 import { DashboardHeader } from '@/features/dashboard/DashboardHeader';
 
 export async function generateMetadata(props: { params: { locale: string } }) {
@@ -15,40 +15,37 @@ export async function generateMetadata(props: { params: { locale: string } }) {
   };
 }
 
-export default function DashboardLayout(props: { children: React.ReactNode }) {
-  const t = useTranslations('DashboardLayout');
-
+function MainContent({ children }: { children: React.ReactNode }) {
   return (
-    <>
-      <div className="shadow-md">
+    <div className="ml-64 flex-1 bg-white transition-all duration-300 ease-in-out">
+      <div className="mx-auto max-w-screen-xl px-3 pb-16 pt-6">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+export default function DashboardLayout(props: { children: React.ReactNode }) {
+  return (
+    <div className="min-h-screen bg-muted">
+      {/* Header */}
+      <div className="bg-gray-900 shadow-md">
         <div className="mx-auto flex max-w-screen-xl items-center justify-between px-3 py-4">
-          <DashboardHeader
-            menu={[
-              {
-                href: '/dashboard',
-                label: t('home'),
-              },
-              // PRO: Link to the /dashboard/todos page
-              {
-                href: '/dashboard/organization-profile/organization-members',
-                label: t('members'),
-              },
-              {
-                href: '/dashboard/organization-profile',
-                label: t('settings'),
-              },
-              // PRO: Link to the /dashboard/billing page
-            ]}
-          />
+          <DashboardHeader />
         </div>
       </div>
 
-      <div className="min-h-[calc(100vh-72px)] bg-muted">
-        <div className="mx-auto max-w-screen-xl px-3 pb-16 pt-6">
+      {/* Main Layout */}
+      <div className="flex">
+        {/* Sidebar */}
+        <DashboardSidebar />
+
+        {/* Main Content */}
+        <MainContent>
           {props.children}
-        </div>
+        </MainContent>
       </div>
-    </>
+    </div>
   );
 }
 

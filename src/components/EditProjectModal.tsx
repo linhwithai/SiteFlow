@@ -105,7 +105,7 @@ export function EditProjectModal({
         status: formData.status || undefined,
         isActive: formData.isActive,
       };
-      
+
       // console.log('Modal form data:', cleanedData);
       await onSave(cleanedData);
       onClose();
@@ -127,16 +127,16 @@ export function EditProjectModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
-      <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+      <Card className="max-h-[90vh] w-full max-w-2xl overflow-y-auto">
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
           <CardTitle className="text-xl font-semibold">Chỉnh sửa dự án</CardTitle>
           <Button
             variant="ghost"
             size="sm"
             onClick={onClose}
-            className="h-8 w-8 p-0"
+            className="size-8 p-0"
           >
-            <X className="h-4 w-4" />
+            <X className="size-4" />
           </Button>
         </CardHeader>
         <CardContent>
@@ -147,7 +147,7 @@ export function EditProjectModal({
               <Input
                 id="name"
                 value={formData.name}
-                onChange={(e) => handleInputChange('name', e.target.value)}
+                onChange={e => handleInputChange('name', e.target.value)}
                 placeholder="Nhập tên dự án"
                 required
               />
@@ -159,7 +159,7 @@ export function EditProjectModal({
               <Textarea
                 id="description"
                 value={formData.description}
-                onChange={(e) => handleInputChange('description', e.target.value)}
+                onChange={e => handleInputChange('description', e.target.value)}
                 placeholder="Nhập mô tả dự án"
                 rows={3}
               />
@@ -171,7 +171,7 @@ export function EditProjectModal({
               <Input
                 id="address"
                 value={formData.address}
-                onChange={(e) => handleInputChange('address', e.target.value)}
+                onChange={e => handleInputChange('address', e.target.value)}
                 placeholder="Nhập địa chỉ dự án"
               />
             </div>
@@ -183,7 +183,7 @@ export function EditProjectModal({
                 <Input
                   id="city"
                   value={formData.city}
-                  onChange={(e) => handleInputChange('city', e.target.value)}
+                  onChange={e => handleInputChange('city', e.target.value)}
                   placeholder="Nhập thành phố"
                 />
               </div>
@@ -192,7 +192,7 @@ export function EditProjectModal({
                 <Input
                   id="province"
                   value={formData.province}
-                  onChange={(e) => handleInputChange('province', e.target.value)}
+                  onChange={e => handleInputChange('province', e.target.value)}
                   placeholder="Nhập tỉnh/thành phố"
                 />
               </div>
@@ -206,7 +206,7 @@ export function EditProjectModal({
                   id="startDate"
                   type="date"
                   value={formData.startDate}
-                  onChange={(e) => handleInputChange('startDate', e.target.value)}
+                  onChange={e => handleInputChange('startDate', e.target.value)}
                 />
               </div>
               <div className="space-y-2">
@@ -215,7 +215,7 @@ export function EditProjectModal({
                   id="endDate"
                   type="date"
                   value={formData.endDate}
-                  onChange={(e) => handleInputChange('endDate', e.target.value)}
+                  onChange={e => handleInputChange('endDate', e.target.value)}
                 />
               </div>
             </div>
@@ -227,7 +227,7 @@ export function EditProjectModal({
                 id="budget"
                 type="number"
                 value={formData.budget}
-                onChange={(e) => handleInputChange('budget', Number(e.target.value))}
+                onChange={e => handleInputChange('budget', Number(e.target.value))}
                 placeholder="Nhập ngân sách dự án"
                 min="0"
               />
@@ -238,14 +238,14 @@ export function EditProjectModal({
               <Label htmlFor="projectManagerId">Quản lý dự án</Label>
               <Select
                 value={formData.projectManagerId || 'none'}
-                onValueChange={(value) => handleInputChange('projectManagerId', value)}
+                onValueChange={value => handleInputChange('projectManagerId', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder={isLoadingUsers ? 'Đang tải...' : 'Chọn quản lý dự án'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Không chọn</SelectItem>
-                  {users.map((user) => (
+                  {users.map(user => (
                     <SelectItem key={user.id} value={user.id}>
                       {user.name}
                       {' '}
@@ -263,7 +263,7 @@ export function EditProjectModal({
               <Label htmlFor="status">Trạng thái</Label>
               <Select
                 value={formData.status}
-                onValueChange={(value) => handleInputChange('status', value)}
+                onValueChange={value => handleInputChange('status', value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Chọn trạng thái" />
@@ -284,8 +284,8 @@ export function EditProjectModal({
                 id="isActive"
                 type="checkbox"
                 checked={formData.isActive}
-                onChange={(e) => handleInputChange('isActive', e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
+                onChange={e => handleInputChange('isActive', e.target.checked)}
+                className="size-4 rounded border-gray-300"
               />
               <Label htmlFor="isActive">Dự án đang hoạt động</Label>
             </div>

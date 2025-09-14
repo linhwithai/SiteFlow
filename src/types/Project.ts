@@ -43,9 +43,22 @@ export type UpdateProjectRequest = {
 
 export type ProjectListResponse = {
   projects: Project[];
-  total: number;
-  page: number;
-  limit: number;
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+    hasNext: boolean;
+    hasPrev: boolean;
+  };
+  filters: {
+    status?: string;
+    city?: string;
+    province?: string;
+    projectManagerId?: string;
+    isActive?: boolean;
+    search?: string;
+  };
 };
 
 export type ProjectFilters = {

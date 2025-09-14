@@ -4,8 +4,9 @@
  */
 
 // import { db } from '@/libs/DB';
-import { logger } from '@/libs/Logger';
 import { NextResponse } from 'next/server';
+
+import { logger } from '@/libs/Logger';
 
 export async function GET() {
   try {
@@ -50,7 +51,6 @@ export async function GET() {
       users,
       count: users.length,
     });
-
   } catch (error) {
     logger.error('Error fetching users:', error);
     return NextResponse.json(

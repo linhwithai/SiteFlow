@@ -4,9 +4,9 @@ import { CalendarIcon, MapPinIcon, PlusIcon, SearchIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 
+import { EditProjectModal } from '@/components/EditProjectModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { EditProjectModal } from '@/components/EditProjectModal';
 import { Input } from '@/components/ui/input';
 import { PROJECT_STATUS } from '@/types/Enum';
 import type { Project, ProjectFilters, UpdateProjectRequest } from '@/types/Project';
@@ -115,8 +115,10 @@ export function ProjectList({
   };
 
   const handleSaveProject = async (data: UpdateProjectRequest) => {
-    if (!editingProject) return;
-    
+    if (!editingProject) {
+      return;
+    }
+
     try {
       setIsUpdating(true);
       await onUpdate(editingProject.id, data);

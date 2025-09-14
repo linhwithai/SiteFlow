@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
           ilike(projectSchema.name, `%${search}%`),
           ilike(projectSchema.description, `%${search}%`),
           ilike(projectSchema.address, `%${search}%`),
-        ),
+        )!,
       );
     }
 
@@ -109,7 +109,7 @@ export async function GET(request: NextRequest) {
         .select({ count: sql`count(*)` })
         .from(projectSchema)
         .where(and(...whereConditions))
-        .then(result => result[0]?.count || 0),
+        .then((result: any) => result[0]?.count || 0),
     ]);
 
     const total = Number(totalCount);
@@ -192,7 +192,7 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
-    logger.info(`Project created: ${newProject?.id} by user ${userId}`);
+    logger.info(`Project created: ${newProject?.id} by user org_demo_1`);
 
     return NextResponse.json(newProject, { status: 201 });
   } catch (error) {

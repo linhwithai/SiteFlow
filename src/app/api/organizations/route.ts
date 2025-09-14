@@ -1,12 +1,13 @@
 /**
  * Organizations API endpoints
- * GET /api/organizations - List all organizations
+ * GET /api/organizations - List all organizations (for testing)
  */
+
+import { NextResponse } from 'next/server';
 
 import { db } from '@/libs/DB';
 import { logger } from '@/libs/Logger';
 import { organizationSchema } from '@/models/Schema';
-import { NextResponse } from 'next/server';
 
 export async function GET() {
   try {
@@ -25,7 +26,6 @@ export async function GET() {
       organizations,
       count: organizations.length,
     });
-
   } catch (error) {
     logger.error('Error fetching organizations:', error);
     return NextResponse.json(

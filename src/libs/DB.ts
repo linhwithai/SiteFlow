@@ -13,7 +13,7 @@ import * as schema from '@/models/Schema';
 import { Env } from './Env';
 
 let client;
-let drizzle;
+let drizzle: any;
 
 // Initialize database connection
 async function initializeDB() {
@@ -48,7 +48,6 @@ async function initializeDB() {
 }
 
 // Initialize database
-let db: any;
 
 // Use a promise to handle async initialization
 const dbPromise = initializeDB().then(() => drizzle);

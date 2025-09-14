@@ -37,8 +37,8 @@ export async function GET() {
       .where(
         and(
           eq(projectSchema.organizationId, orgId),
-          eq(projectSchema.isActive, true)
-        )
+          eq(projectSchema.isActive, true),
+        ),
       );
 
     logger.info(`Project stats fetched for org ${orgId}`);
@@ -53,7 +53,6 @@ export async function GET() {
       totalBudget: Number(stats.totalBudget),
       averageBudget: Number(stats.averageBudget),
     });
-
   } catch (error) {
     logger.error('Error fetching project stats:', error);
     return NextResponse.json(

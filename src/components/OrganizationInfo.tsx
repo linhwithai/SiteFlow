@@ -96,10 +96,22 @@ export function OrganizationInfo({ className = '' }: OrganizationInfoProps) {
       {/* Actions */}
       <div className="mt-4 border-t border-gray-200 pt-4 dark:border-gray-700">
         <div className="flex gap-2">
-          <button type="button" className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = '/dashboard/organization-profile';
+            }}
+            className="flex-1 rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+          >
             Quản lý tổ chức
           </button>
-          <button type="button" className="flex-1 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600">
+          <button
+            type="button"
+            onClick={() => {
+              window.location.href = '/dashboard/organization-profile/organization-members';
+            }}
+            className="flex-1 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
+          >
             Mời thành viên
           </button>
         </div>

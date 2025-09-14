@@ -1,6 +1,7 @@
 'use client';
 
 import { zodResolver } from '@hookform/resolvers/zod';
+import { CalendarIcon, DollarSignIcon, FileTextIcon, MapPinIcon, UserIcon } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
 import { PROJECT_STATUS } from '@/types/Enum';
 import type { CreateProjectRequest, Project, UpdateProjectRequest } from '@/types/Project';
 
@@ -114,20 +116,30 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
   return (
     <Card className="mx-auto max-w-2xl">
       <CardHeader>
-        <CardTitle>
-          {project ? 'Chỉnh sửa dự án' : 'Tạo dự án mới'}
-        </CardTitle>
-        <CardDescription>
-          {project
-            ? 'Cập nhật thông tin dự án của bạn'
-            : 'Điền thông tin để tạo dự án mới'}
-        </CardDescription>
+        <div className="flex items-center gap-3">
+          <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/20">
+            <FileTextIcon className="size-5 text-blue-600 dark:text-blue-400" />
+          </div>
+          <div>
+            <CardTitle className="text-xl">
+              {project ? 'Chỉnh sửa dự án' : 'Tạo dự án mới'}
+            </CardTitle>
+            <CardDescription className="mt-1">
+              {project
+                ? 'Cập nhật thông tin dự án của bạn'
+                : 'Điền thông tin để tạo dự án mới'}
+            </CardDescription>
+          </div>
+        </div>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           {/* Basic Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Thông tin cơ bản</h3>
+            <div className="flex items-center gap-2">
+              <FileTextIcon className="size-5 text-gray-600" />
+              <h3 className="text-lg font-medium">Thông tin cơ bản</h3>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="name">Tên dự án *</Label>
@@ -144,14 +156,12 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
 
             <div className="space-y-2">
               <Label htmlFor="description">Mô tả</Label>
-              <textarea
+              <Textarea
                 id="description"
                 {...register('description')}
                 placeholder="Mô tả chi tiết về dự án"
                 rows={3}
-                className={`w-full rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-                  errors.description ? 'border-red-500' : ''
-                }`}
+                className={errors.description ? 'border-red-500' : ''}
               />
               {errors.description && (
                 <p className="text-sm text-red-500">{errors.description.message}</p>
@@ -161,7 +171,10 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
 
           {/* Location Information */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Thông tin địa điểm</h3>
+            <div className="flex items-center gap-2">
+              <MapPinIcon className="size-5 text-gray-600" />
+              <h3 className="text-lg font-medium">Thông tin địa điểm</h3>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -207,7 +220,10 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
 
           {/* Timeline */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Thời gian thực hiện</h3>
+            <div className="flex items-center gap-2">
+              <CalendarIcon className="size-5 text-gray-600" />
+              <h3 className="text-lg font-medium">Thời gian thực hiện</h3>
+            </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2">
@@ -240,7 +256,10 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
 
           {/* Budget */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Ngân sách</h3>
+            <div className="flex items-center gap-2">
+              <DollarSignIcon className="size-5 text-gray-600" />
+              <h3 className="text-lg font-medium">Ngân sách</h3>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="budget">Ngân sách (VNĐ)</Label>
@@ -259,7 +278,10 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
 
           {/* Project Manager */}
           <div className="space-y-4">
-            <h3 className="text-lg font-medium">Quản lý dự án</h3>
+            <div className="flex items-center gap-2">
+              <UserIcon className="size-5 text-gray-600" />
+              <h3 className="text-lg font-medium">Quản lý dự án</h3>
+            </div>
 
             <div className="space-y-2">
               <Label htmlFor="projectManagerId">Quản lý dự án</Label>
@@ -321,15 +343,25 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
               variant="outline"
               onClick={onCancel}
               disabled={isSubmitting || isLoading}
+              className="min-w-[100px]"
             >
               Hủy
             </Button>
             <Button
               type="submit"
               disabled={isSubmitting || isLoading}
-              className="min-w-[100px]"
+              className="min-w-[120px] bg-blue-600 hover:bg-blue-700"
             >
-              {isSubmitting || isLoading ? 'Đang xử lý...' : project ? 'Cập nhật' : 'Tạo dự án'}
+              {isSubmitting || isLoading
+                ? (
+                    <div className="flex items-center gap-2">
+                      <div className="size-4 animate-spin rounded-full border-2 border-white border-t-transparent"></div>
+                      Đang xử lý...
+                    </div>
+                  )
+                : (
+                    project ? 'Cập nhật dự án' : 'Tạo dự án mới'
+                  )}
             </Button>
           </div>
         </form>
