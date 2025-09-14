@@ -28,6 +28,7 @@ export default function DailyLogsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingLog, setEditingLog] = useState(null);
   const [isPhotoLoading, setIsPhotoLoading] = useState(false);
+  const [pendingPhotos, setPendingPhotos] = useState([]);
 
   const handleCreateLog = () => {
     setEditingLog(null);
@@ -49,18 +50,44 @@ export default function DailyLogsPage() {
     if (editingLog) {
       await updateDailyLog((editingLog as any).id, data);
     } else {
-      await createDailyLog(data);
+      // Create daily log first
+      const newDailyLog = await createDailyLog(data);
+      
+      // Then upload pending photos
+      if (pendingPhotos.length > 0) {
+        for (const photo of pendingPhotos) {
+          try {
+            await uploadPhoto(newDailyLog.id, photo.file);
+          } catch (error) {
+            console.error('Error uploading pending photo:', error);
+          }
+        }
+        setPendingPhotos([]);
+      }
     }
     setIsModalOpen(false);
     setEditingLog(null);
   };
 
   const handlePhotoUpload = async (file) => {
-    if (!editingLog) return;
-    
     try {
       setIsPhotoLoading(true);
-      await uploadPhoto(editingLog.id, file);
+      
+      if (editingLog) {
+        // Editing existing daily log - upload directly
+        await uploadPhoto(editingLog.id, file);
+      } else {
+        // Creating new daily log - store photo temporarily
+        const tempPhoto = {
+          id: `temp_${Date.now()}`,
+          file: file,
+          url: URL.createObjectURL(file),
+          name: file.name,
+          size: file.size,
+          isPending: true
+        };
+        setPendingPhotos(prev => [...prev, tempPhoto]);
+      }
     } catch (error) {
       console.error('Error uploading photo:', error);
     } finally {
@@ -69,20 +96,32 @@ export default function DailyLogsPage() {
   };
 
   const handlePhotoDelete = async (photoId) => {
-    if (!editingLog) return;
-    
     try {
-      await deletePhoto(editingLog.id, photoId);
+      if (editingLog) {
+        // Editing existing daily log - delete from server
+        await deletePhoto(editingLog.id, photoId);
+      } else {
+        // Creating new daily log - remove from pending photos
+        setPendingPhotos(prev => prev.filter(photo => photo.id !== photoId));
+      }
     } catch (error) {
       console.error('Error deleting photo:', error);
     }
   };
 
   const handlePhotoUpdateCaption = async (photoId, caption) => {
-    if (!editingLog) return;
-    
     try {
-      await updatePhotoCaption(editingLog.id, photoId, caption);
+      if (editingLog) {
+        // Editing existing daily log - update on server
+        await updatePhotoCaption(editingLog.id, photoId, caption);
+      } else {
+        // Creating new daily log - update pending photo
+        setPendingPhotos(prev => 
+          prev.map(photo => 
+            photo.id === photoId ? { ...photo, caption } : photo
+          )
+        );
+      }
     } catch (error) {
       console.error('Error updating photo caption:', error);
     }
@@ -215,14 +254,15 @@ export default function DailyLogsPage() {
         onClose={() => {
           setIsModalOpen(false);
           setEditingLog(null);
+          setPendingPhotos([]);
         }}
         onSubmit={handleSubmit}
         dailyLog={editingLog || undefined}
-        projectId={1}
         onPhotoUpload={handlePhotoUpload}
         onPhotoDelete={handlePhotoDelete}
         onPhotoUpdateCaption={handlePhotoUpdateCaption}
         isPhotoLoading={isPhotoLoading}
+        photos={editingLog ? editingLog.photos : pendingPhotos}
       />
     </div>
   );

@@ -19,6 +19,7 @@ export type DailyLog = {
   id: number;
   projectId: number;
   organizationId: string;
+  title: string;
   logDate: Date;
   weather?: string;
   temperature?: number;
@@ -35,6 +36,7 @@ export type DailyLog = {
 
 export type CreateDailyLogRequest = {
   projectId: number;
+  title: string;
   logDate: string; // ISO date string
   weather?: string;
   temperature?: number;
@@ -46,6 +48,7 @@ export type CreateDailyLogRequest = {
 };
 
 export type UpdateDailyLogRequest = {
+  title?: string;
   logDate?: string;
   weather?: string;
   temperature?: number;

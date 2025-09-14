@@ -16,6 +16,7 @@ import { dailyLogSchema } from '@/models/Schema';
 // Validation schemas
 const createDailyLogSchema = z.object({
   projectId: z.number().int().positive('Project ID must be positive'),
+  title: z.string().min(1, 'Title is required').max(200, 'Title too long'),
   logDate: z.string().datetime('Invalid date format'),
   weather: z.string().max(100, 'Weather description too long').optional(),
   temperature: z.number().int().min(-50).max(60, 'Temperature must be between -50 and 60°C').optional(),

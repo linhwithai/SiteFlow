@@ -27,7 +27,7 @@ export async function DELETE(
   try {
     const dailyLogId = Number.parseInt(params.id);
     const photoId = Number.parseInt(params.photoId);
-    
+
     if (isNaN(dailyLogId) || isNaN(photoId)) {
       return NextResponse.json({ error: 'Invalid daily log ID or photo ID' }, { status: 400 });
     }
@@ -101,7 +101,7 @@ export async function PUT(
   try {
     const dailyLogId = Number.parseInt(params.id);
     const photoId = Number.parseInt(params.photoId);
-    
+
     if (isNaN(dailyLogId) || isNaN(photoId)) {
       return NextResponse.json({ error: 'Invalid daily log ID or photo ID' }, { status: 400 });
     }
@@ -162,5 +162,3 @@ export async function PUT(
     );
   }
 }
-
-

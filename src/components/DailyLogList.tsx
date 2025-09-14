@@ -6,7 +6,6 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
 import type { DailyLog, DailyLogFilters } from '@/types/DailyLog';
 
 type DailyLogListProps = {
@@ -258,26 +257,29 @@ export function DailyLogList({
                   {/* Photo Preview */}
                   {dailyLog.photos && dailyLog.photos.length > 0 && (
                     <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                      <div className="mb-2 flex items-center gap-2">
+                        <ImageIcon className="size-4 text-muted-foreground" />
                         <span className="text-sm font-medium">
-                          {dailyLog.photos.length} ảnh
+                          {dailyLog.photos.length}
+                          {' '}
+                          ảnh
                         </span>
                       </div>
                       <div className="flex gap-2 overflow-x-auto">
-                        {dailyLog.photos.slice(0, 3).map((photo) => (
-                          <div key={photo.id} className="flex-shrink-0">
+                        {dailyLog.photos.slice(0, 3).map(photo => (
+                          <div key={photo.id} className="shrink-0">
                             <img
                               src={photo.url}
                               alt={photo.caption || photo.name}
-                              className="w-16 h-16 object-cover rounded border"
+                              className="size-16 rounded border object-cover"
                             />
                           </div>
                         ))}
                         {dailyLog.photos.length > 3 && (
-                          <div className="flex-shrink-0 w-16 h-16 bg-gray-100 rounded border flex items-center justify-center">
+                          <div className="flex size-16 shrink-0 items-center justify-center rounded border bg-gray-100">
                             <span className="text-xs text-gray-500">
-                              +{dailyLog.photos.length - 3}
+                              +
+                              {dailyLog.photos.length - 3}
                             </span>
                           </div>
                         )}

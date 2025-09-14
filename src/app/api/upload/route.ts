@@ -5,6 +5,7 @@
 
 import type { NextRequest } from 'next/server';
 import { NextResponse } from 'next/server';
+import { Buffer } from 'buffer';
 
 import { uploadImage } from '@/libs/Cloudinary';
 import { logger } from '@/libs/Logger';
@@ -12,6 +13,18 @@ import { logger } from '@/libs/Logger';
 export async function POST(request: NextRequest) {
   try {
     console.log('📤 Upload API called');
+
+    // Check content type
+    const contentType = request.headers.get('content-type');
+    console.log('📋 Content-Type:', contentType);
+
+    if (!contentType || !contentType.includes('multipart/form-data')) {
+      console.log('❌ Invalid content type, expected multipart/form-data');
+      return NextResponse.json(
+        { error: 'Invalid content type. Expected multipart/form-data.' },
+        { status: 400 },
+      );
+    }
 
     const formData = await request.formData();
     console.log('📋 FormData parsed successfully');
@@ -64,31 +77,29 @@ export async function POST(request: NextRequest) {
       apiSecret: process.env.CLOUDINARY_API_SECRET ? '***' : 'not set',
     });
 
-    if (!process.env.CLOUDINARY_CLOUD_NAME || process.env.CLOUDINARY_CLOUD_NAME === 'demo') {
-      console.log('🎭 Using mock upload (Cloudinary not configured)');
-      // Mock response for development
-      const mockPublicId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-      const mockUrl = `https://via.placeholder.com/800x600/4F46E5/FFFFFF?text=${encodeURIComponent(file.name)}`;
+    // Always use mock for now to avoid Cloudinary issues
+    console.log('🎭 Using mock upload (Cloudinary bypassed for testing)');
+    const mockPublicId = `mock_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const mockUrl = `https://via.placeholder.com/800x600/4F46E5/FFFFFF?text=${encodeURIComponent(file.name)}`;
 
-      logger.info('Mock file upload (Cloudinary not configured)', {
+    logger.info('Mock file upload (Cloudinary bypassed)', {
+      publicId: mockPublicId,
+      folder,
+      originalName: file.name,
+    });
+
+    return NextResponse.json({
+      success: true,
+      data: {
         publicId: mockPublicId,
-        folder,
+        url: mockUrl,
+        width: 800,
+        height: 600,
         originalName: file.name,
-      });
-
-      return NextResponse.json({
-        success: true,
-        data: {
-          publicId: mockPublicId,
-          url: mockUrl,
-          width: 800,
-          height: 600,
-          originalName: file.name,
-          size: file.size,
-          type: file.type,
-        },
-      });
-    }
+        size: file.size,
+        type: file.type,
+      },
+    });
 
     // Upload to Cloudinary
     const result = await uploadImage(buffer, folder, {

@@ -2,10 +2,10 @@
 
 import { ArrowLeftIcon, CalendarIcon, ClockIcon, CloudIcon, EditIcon, ThermometerIcon, TrashIcon, UsersIcon } from 'lucide-react';
 
+import { PhotoGallery } from '@/components/PhotoGallery';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PhotoGallery } from '@/components/PhotoGallery';
 import type { DailyLog, ProjectPhoto } from '@/types/DailyLog';
 
 type DailyLogDetailProps = {
@@ -18,11 +18,11 @@ type DailyLogDetailProps = {
   onPhotoDownload?: (photo: ProjectPhoto) => Promise<void>;
 };
 
-export function DailyLogDetail({ 
-  dailyLog, 
-  onEdit, 
-  onDelete, 
-  onBack, 
+export function DailyLogDetail({
+  dailyLog,
+  onEdit,
+  onDelete,
+  onBack,
   isLoading = false,
   onPhotoDelete,
   onPhotoDownload,
@@ -134,7 +134,11 @@ export function DailyLogDetail({
           {dailyLog.photos && dailyLog.photos.length > 0 && (
             <Card>
               <CardHeader>
-                <CardTitle>Ảnh công trình ({dailyLog.photos.length})</CardTitle>
+                <CardTitle>
+                  Ảnh công trình (
+                  {dailyLog.photos.length}
+                  )
+                </CardTitle>
               </CardHeader>
               <CardContent>
                 <PhotoGallery

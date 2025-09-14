@@ -104,6 +104,7 @@ export const dailyLogSchema = pgTable('daily_log', {
     .notNull()
     .references(() => organizationSchema.id, { onDelete: 'cascade' }),
   // Log details
+  title: text('title').notNull(),
   logDate: timestamp('log_date', { mode: 'date' }).notNull(),
   weather: text('weather'),
   temperature: integer('temperature'), // in Celsius
@@ -146,6 +147,44 @@ export const projectPhotoSchema = pgTable('project_photo', {
   tags: text('tags'), // JSON array of tags
   // System fields
   uploadedById: text('uploaded_by_id').notNull(), // Clerk User ID
+  updatedAt: timestamp('updated_at', { mode: 'date' })
+    .defaultNow()
+    .$onUpdate(() => new Date())
+    .notNull(),
+  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
+});
+
+// ===== PROJECT TASK SCHEMA =====
+// Tasks within a project for work planning and progress tracking
+export const projectTaskSchema = pgTable('project_task', {
+  id: serial('id').primaryKey(),
+  projectId: integer('project_id')
+    .notNull()
+    .references(() => projectSchema.id, { onDelete: 'cascade' }),
+  organizationId: text('organization_id')
+    .notNull()
+    .references(() => organizationSchema.id, { onDelete: 'cascade' }),
+  // Task details
+  title: text('title').notNull(),
+  description: text('description'),
+  status: varchar('status', { length: 20 }).default('todo').notNull(), // todo, in_progress, review, completed, cancelled
+  priority: varchar('priority', { length: 10 }).default('medium').notNull(), // low, medium, high, urgent
+  type: varchar('type', { length: 20 }).default('other').notNull(), // construction, inspection, maintenance, safety, quality, administrative, other
+  // Assignment
+  assignedTo: text('assigned_to'), // Clerk User ID
+  assignedBy: text('assigned_by'), // Clerk User ID
+  // Scheduling
+  dueDate: timestamp('due_date', { mode: 'date' }),
+  completedAt: timestamp('completed_at', { mode: 'date' }),
+  // Time tracking
+  estimatedHours: integer('estimated_hours'),
+  actualHours: integer('actual_hours'),
+  progress: integer('progress').default(0).notNull(), // 0-100
+  // Metadata
+  tags: text('tags'), // JSON array of tags
+  dependencies: text('dependencies'), // JSON array of task IDs
+  // System fields
+  isActive: boolean('is_active').default(true).notNull(),
   updatedAt: timestamp('updated_at', { mode: 'date' })
     .defaultNow()
     .$onUpdate(() => new Date())

@@ -197,8 +197,9 @@ export function PhotoGallery({
         Array.from(selectedPhotos).map((photoId) => {
           const photo = photos.find(p => p.id === photoId);
           if (photo) {
-            onDownload(photo);
+            return onDownload(photo);
           }
+          return Promise.resolve();
         }),
       );
       clearSelection();
@@ -207,7 +208,7 @@ export function PhotoGallery({
     } finally {
       setIsLoading(false);
     }
-  }, [selectedPhotos, onDownload, clearSelection]);
+  }, [selectedPhotos, onDownload, clearSelection, photos]);
 
   const deleteSelectedPhotos = useCallback(async () => {
     if (!onDelete) {
@@ -295,7 +296,8 @@ export function PhotoGallery({
                         variant="outline"
                         size="sm"
                         onClick={() => {
-                          if (confirm(`Bạn có chắc chắn muốn chọn tất cả ${photos.length} ảnh?\n\nLưu ý: Hành động xóa sẽ ảnh hưởng đến tất cả ảnh đã chọn.`)) {
+                          // eslint-disable-next-line no-alert
+                          if (window.confirm(`Bạn có chắc chắn muốn chọn tất cả ${photos.length} ảnh?\n\nLưu ý: Hành động xóa sẽ ảnh hưởng đến tất cả ảnh đã chọn.`)) {
                             selectAllPhotos();
                           }
                         }}
@@ -371,7 +373,8 @@ export function PhotoGallery({
                 variant="outline"
                 onClick={() => {
                   const message = `⚠️ CẢNH BÁO ⚠️\n\nBạn sắp xóa ${selectedPhotos.size} ảnh vĩnh viễn!\n\nHành động này không thể hoàn tác.\n\nBạn có chắc chắn muốn tiếp tục?`;
-                  if (confirm(message)) {
+                  // eslint-disable-next-line no-alert
+                  if (window.confirm(message)) {
                     deleteSelectedPhotos();
                   }
                 }}
@@ -439,7 +442,7 @@ export function PhotoGallery({
                     )}
 
                     {/* Overlay - View Image Icon */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 transition-all duration-200 group-hover:bg-opacity-30">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-all duration-200 group-hover:bg-black/30">
                       <div className="opacity-0 transition-opacity duration-200 group-hover:opacity-100">
                         <div className="flex size-12 items-center justify-center rounded-full bg-white/90 shadow-lg dark:bg-gray-800/90">
                           <Eye className="size-6 text-gray-700 dark:text-gray-300" />
@@ -450,8 +453,8 @@ export function PhotoGallery({
                     {/* Tags */}
                     {photo.tags && photo.tags.length > 0 && (
                       <div className="absolute right-2 top-2 flex flex-wrap gap-1">
-                        {photo.tags.slice(0, 2).map((tag, tagIndex) => (
-                          <Badge key={tagIndex} variant="secondary" className="text-xs">
+                        {photo.tags.slice(0, 2).map(tag => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
                             {tag}
                           </Badge>
                         ))}
@@ -508,7 +511,8 @@ export function PhotoGallery({
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation();
-                                  if (confirm('Bạn có chắc chắn muốn xóa ảnh này?')) {
+                                  // eslint-disable-next-line no-alert
+                                  if (window.confirm('Bạn có chắc chắn muốn xóa ảnh này?')) {
                                     onDelete(photo.id);
                                   }
                                 }}
@@ -533,11 +537,19 @@ export function PhotoGallery({
       {/* Lightbox Modal */}
       {selectedPhoto && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-95 p-4"
-          onKeyDown={handleKeyDown}
-          tabIndex={-1}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/95 p-4"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Photo viewer"
         >
-          <div className="relative flex size-full items-center justify-center">
+          <div
+            className="relative flex size-full items-center justify-center"
+            onKeyDown={handleKeyDown}
+            onClick={closeLightbox}
+            tabIndex={0}
+            role="button"
+            aria-label="Close photo viewer"
+          >
             {/* Close Button */}
             <Button
               className="absolute right-4 top-4 z-10"
@@ -600,7 +612,8 @@ export function PhotoGallery({
                   variant="secondary"
                   size="sm"
                   onClick={() => {
-                    if (confirm('Bạn có chắc chắn muốn xóa ảnh này?')) {
+                    // eslint-disable-next-line no-alert
+                    if (window.confirm('Bạn có chắc chắn muốn xóa ảnh này?')) {
                       onDelete(selectedPhoto.id);
                       closeLightbox();
                     }
@@ -637,13 +650,15 @@ export function PhotoGallery({
 
             {/* Image */}
             <div className="flex size-full items-center justify-center">
-              <img
+              <OptimizedImage
                 src={selectedPhoto.url}
                 alt={selectedPhoto.name}
                 className="max-h-full max-w-full object-contain transition-transform duration-200"
                 style={{
                   transform: `scale(${zoomLevel}) rotate(${rotation}deg)`,
                 }}
+                width={800}
+                height={600}
               />
             </div>
 

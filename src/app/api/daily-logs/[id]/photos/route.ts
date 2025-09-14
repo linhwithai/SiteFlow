@@ -116,15 +116,20 @@ export async function POST(
     console.log('✅ Database connected');
 
     // First, get the daily log to get the project ID
+    const { dailyLogSchema } = await import('@/models/Schema');
     const dailyLog = await database
       .select()
-      .from(projectPhotoSchema)
-      .where(eq(projectPhotoSchema.dailyLogId, dailyLogId))
+      .from(dailyLogSchema)
+      .where(eq(dailyLogSchema.id, dailyLogId))
       .limit(1);
 
-    // For now, we'll use a default project ID since we need to get it from daily log
-    // In a real implementation, you'd join with daily_log table
-    const projectId = 1; // This should be fetched from daily_log table
+    if (dailyLog.length === 0) {
+      console.log('❌ Daily log not found:', dailyLogId);
+      return NextResponse.json({ error: 'Daily log not found' }, { status: 404 });
+    }
+
+    const projectId = dailyLog[0].projectId;
+    console.log('📋 Project ID from daily log:', projectId);
 
     // Add photo to daily log
     console.log('💾 Inserting photo to database...');
@@ -169,5 +174,3 @@ export async function POST(
     );
   }
 }
-
-

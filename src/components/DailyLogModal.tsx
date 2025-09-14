@@ -7,7 +7,6 @@ import type { CreateDailyLogRequest, DailyLog, ProjectPhoto, UpdateDailyLogReque
 type DailyLogModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  projectId: number;
   dailyLog?: DailyLog;
   onSubmit: (data: CreateDailyLogRequest | UpdateDailyLogRequest) => Promise<void>;
   isLoading?: boolean;
@@ -15,12 +14,12 @@ type DailyLogModalProps = {
   onPhotoDelete?: (photoId: string) => Promise<void>;
   onPhotoUpdateCaption?: (photoId: string, caption: string) => Promise<void>;
   isPhotoLoading?: boolean;
+  photos?: ProjectPhoto[];
 };
 
 export function DailyLogModal({
   isOpen,
   onClose,
-  projectId,
   dailyLog,
   onSubmit,
   isLoading = false,
@@ -28,6 +27,7 @@ export function DailyLogModal({
   onPhotoDelete,
   onPhotoUpdateCaption,
   isPhotoLoading = false,
+  photos = [],
 }: DailyLogModalProps) {
   const handleSubmit = async (data: CreateDailyLogRequest | UpdateDailyLogRequest) => {
     await onSubmit(data);
@@ -49,7 +49,6 @@ export function DailyLogModal({
         </DialogHeader>
 
         <DailyLogForm
-          projectId={projectId}
           dailyLog={dailyLog}
           onSubmit={handleSubmit}
           onCancel={onClose}
@@ -57,7 +56,7 @@ export function DailyLogModal({
           onPhotoUpload={onPhotoUpload}
           onPhotoDelete={onPhotoDelete}
           onPhotoUpdateCaption={onPhotoUpdateCaption}
-          photos={dailyLog?.photos || []}
+          photos={photos}
           isPhotoLoading={isPhotoLoading}
         />
       </DialogContent>

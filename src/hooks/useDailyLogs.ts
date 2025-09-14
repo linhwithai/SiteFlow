@@ -252,12 +252,12 @@ export function useDailyLogs({ projectId, autoFetch = true }: UseDailyLogsOption
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        publicId: uploadResult.public_id,
-        url: uploadResult.secure_url,
+        publicId: uploadResult.data.publicId,
+        url: uploadResult.data.url,
         name: file.name,
         size: file.size,
-        width: uploadResult.width,
-        height: uploadResult.height,
+        width: uploadResult.data.width,
+        height: uploadResult.data.height,
       }),
     });
 
@@ -267,12 +267,12 @@ export function useDailyLogs({ projectId, autoFetch = true }: UseDailyLogsOption
     }
 
     const photo = await photoResponse.json();
-    
+
     // Update local state
-    setDailyLogs(prev => prev.map(log => 
-      log.id === dailyLogId 
+    setDailyLogs(prev => prev.map(log =>
+      log.id === dailyLogId
         ? { ...log, photos: [...(log.photos || []), photo] }
-        : log
+        : log,
     ));
 
     return photo;
@@ -289,10 +289,10 @@ export function useDailyLogs({ projectId, autoFetch = true }: UseDailyLogsOption
     }
 
     // Update local state
-    setDailyLogs(prev => prev.map(log => 
-      log.id === dailyLogId 
+    setDailyLogs(prev => prev.map(log =>
+      log.id === dailyLogId
         ? { ...log, photos: (log.photos || []).filter(photo => photo.id !== photoId) }
-        : log
+        : log,
     ));
   }, []);
 
@@ -311,15 +311,15 @@ export function useDailyLogs({ projectId, autoFetch = true }: UseDailyLogsOption
     }
 
     // Update local state
-    setDailyLogs(prev => prev.map(log => 
-      log.id === dailyLogId 
-        ? { 
-            ...log, 
-            photos: (log.photos || []).map(photo => 
-              photo.id === photoId ? { ...photo, caption } : photo
-            )
+    setDailyLogs(prev => prev.map(log =>
+      log.id === dailyLogId
+        ? {
+            ...log,
+            photos: (log.photos || []).map(photo =>
+              photo.id === photoId ? { ...photo, caption } : photo,
+            ),
           }
-        : log
+        : log,
     ));
   }, []);
 
