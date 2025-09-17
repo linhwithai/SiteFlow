@@ -17,13 +17,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { usePhotoUpload } from '@/hooks/usePhotoUpload';
-import { PROJECT_STATUS } from '@/types/Enum';
+import { CONSTRUCTION_PROJECT_STATUS } from '@/types/Enum';
 import type { CreateProjectRequest, Project, UpdateProjectRequest } from '@/types/Project';
 import { cn } from '@/utils/Helpers';
 
-const projectSchema = z.object({
+const constructionProjectSchema = z.object({
   name: z.string().min(1, 'Tên dự án là bắt buộc').max(255, 'Tên dự án quá dài'),
-  description: z.string().max(1000, 'Mô tả quá dài').optional(),
+  workItemDescription: z.string().max(1000, 'Mô tả quá dài').optional(),
   address: z.string().max(500, 'Địa chỉ quá dài').optional(),
   city: z.string().max(100, 'Tên thành phố quá dài').optional(),
   province: z.string().max(100, 'Tên tỉnh quá dài').optional(),
@@ -34,7 +34,7 @@ const projectSchema = z.object({
   status: z.string().optional(),
 });
 
-type ProjectFormData = z.infer<typeof projectSchema>;
+type ProjectFormData = z.infer<typeof constructionProjectSchema>;
 
 type User = {
   id: string;
@@ -53,23 +53,23 @@ type ProjectModalProps = {
 };
 
 const statusLabels = {
-  [PROJECT_STATUS.PLANNING]: 'Lập kế hoạch',
-  [PROJECT_STATUS.ACTIVE]: 'Đang thực hiện',
-  [PROJECT_STATUS.ON_HOLD]: 'Tạm dừng',
-  [PROJECT_STATUS.COMPLETED]: 'Hoàn thành',
-  [PROJECT_STATUS.CANCELLED]: 'Hủy bỏ',
+  [CONSTRUCTION_PROJECT_STATUS.PLANNING]: 'Lập kế hoạch',
+  [CONSTRUCTION_PROJECT_STATUS.ACTIVE]: 'Đang thực hiện',
+  [CONSTRUCTION_PROJECT_STATUS.ON_HOLD]: 'Tạm dừng',
+  [CONSTRUCTION_PROJECT_STATUS.COMPLETED]: 'Hoàn thành',
+  [CONSTRUCTION_PROJECT_STATUS.CANCELLED]: 'Hủy bỏ',
 };
 
 export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoading = false }: ProjectModalProps) {
   // Force re-render to avoid cache issues
-  const version = React.useMemo(() => Date.now(), [isOpen]);
+  // const version = React.useMemo(() => Date.now(), [isOpen]);
   const isEditMode = !!project;
 
   const form = useForm<ProjectFormData>({
-    resolver: zodResolver(projectSchema),
+    resolver: zodResolver(constructionProjectSchema),
     defaultValues: {
       name: project?.name || '',
-      description: project?.description || '',
+      workItemDescription: project?.workItemDescription || '',
       address: project?.address || '',
       city: project?.city || '',
       province: project?.province || '',
@@ -77,7 +77,7 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
       endDate: project?.endDate ? new Date(project.endDate).toISOString().split('T')[0] : '',
       budget: project?.budget?.toString() || '',
       projectManagerId: project?.projectManagerId || 'none',
-      status: project?.status || PROJECT_STATUS.PLANNING,
+      status: project?.status || CONSTRUCTION_PROJECT_STATUS.PLANNING,
     },
   });
 
@@ -101,7 +101,7 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
         // Edit mode - return UpdateProjectRequest
         const submitData: UpdateProjectRequest = {
           name: data.name,
-          description: data.description || undefined,
+          workItemDescription: data.workItemDescription || undefined,
           address: data.address || undefined,
           city: data.city || undefined,
           province: data.province || undefined,
@@ -116,7 +116,7 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
         // Create mode - return CreateProjectRequest
         const submitData: CreateProjectRequest = {
           name: data.name,
-          description: data.description || undefined,
+          workItemDescription: data.workItemDescription || undefined,
           address: data.address || undefined,
           city: data.city || undefined,
           province: data.province || undefined,
@@ -199,7 +199,7 @@ export function ProjectModal({ isOpen, onClose, onSave, users, project, isLoadin
                   <div className="md:col-span-2">
                     <FormField
                       control={form.control}
-                      name="description"
+                      name="workItemDescription"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Mô tả</FormLabel>

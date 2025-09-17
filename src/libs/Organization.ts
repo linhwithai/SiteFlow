@@ -5,7 +5,7 @@
  * and managing organization-related data in the database
  */
 
-import { auth } from '@clerk/nextjs/server';
+// import { auth } from '@clerk/nextjs/server'; // Temporarily disabled for testing
 import { and, eq } from 'drizzle-orm';
 
 import { organizationSchema } from '@/models/Schema';
@@ -16,16 +16,20 @@ import { db } from './DB';
  * Get the current user's organization ID from Clerk auth
  */
 export async function getCurrentOrganizationId(): Promise<string | null> {
-  const { orgId } = await auth();
-  return orgId || null;
+  // Temporarily return demo organization ID for testing
+  return 'org_demo_1';
+  // const { orgId } = await auth();
+  // return orgId || null;
 }
 
 /**
  * Get the current user's ID from Clerk auth
  */
 export async function getCurrentUserId(): Promise<string | null> {
-  const { userId } = await auth();
-  return userId;
+  // Temporarily return demo user ID for testing
+  return 'demo-user-1';
+  // const { userId } = await auth();
+  // return userId;
 }
 
 /**

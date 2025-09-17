@@ -13,13 +13,13 @@ import { z } from 'zod';
 
 import { db } from '@/libs/DB';
 import { logger } from '@/libs/Logger';
-import { projectPhotoSchema, projectSchema } from '@/models/Schema';
-import { PROJECT_STATUS } from '@/types/Enum';
+import { constructionPhotoSchema, constructionProjectSchema } from '@/models/Schema';
+import { CONSTRUCTION_PROJECT_STATUS } from '@/types/Enum';
 
 // Validation schemas
 const updateProjectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(255, 'Project name too long').optional(),
-  description: z.string().max(1000, 'Description too long').optional(),
+  workItemDescription: z.string().max(1000, 'Description too long').optional(),
   address: z.string().max(500, 'Address too long').optional(),
   city: z.string().max(100, 'City name too long').optional(),
   province: z.string().max(100, 'Province name too long').optional(),
@@ -30,7 +30,7 @@ const updateProjectSchema = z.object({
     z.string().transform(Number).refine(val => val >= 0, 'Budget must be positive'),
   ]).optional(),
   projectManagerId: z.string().optional(),
-  status: z.enum(Object.values(PROJECT_STATUS) as [string, ...string[]]).optional(),
+  status: z.enum(Object.values(CONSTRUCTION_PROJECT_STATUS) as [string, ...string[]]).optional(),
   isActive: z.boolean().optional(),
 });
 
@@ -39,41 +39,80 @@ export async function GET(
   { params }: { params: { id: string } },
 ) {
   try {
+    console.log('🔍 GET /api/projects/[id] - params:', params);
+    
     // Use real organization ID from database
     const orgId = 'org_demo_1';
     const userId = 'test-user-123';
 
     const projectId = Number.parseInt(params.id);
+    console.log('🔍 Parsed projectId:', projectId, 'isNaN:', isNaN(projectId));
+    
     if (isNaN(projectId)) {
       return NextResponse.json({ error: 'Invalid project ID' }, { status: 400 });
     }
 
     // Get database connection
+    console.log('🔍 Getting database connection...');
     const database = await db;
+    console.log('🔍 Database connection:', !!database);
 
     // Get project by ID
+    console.log('🔍 Querying project with ID:', projectId, 'orgId:', orgId);
     const [project] = await database
       .select()
-      .from(projectSchema)
+      .from(constructionProjectSchema)
       .where(
         and(
-          eq(projectSchema.id, projectId),
-          eq(projectSchema.organizationId, orgId),
+          eq(constructionProjectSchema.id, projectId),
+          eq(constructionProjectSchema.organizationId, orgId),
         ),
       )
       .limit(1);
 
+    console.log('🔍 Project found:', !!project, project ? 'ID: ' + project.id : 'null');
+
     if (!project) {
+      console.log('❌ Project not found for ID:', projectId, 'orgId:', orgId);
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    logger.info(`Project fetched: ${projectId} by user ${userId}`);
+    // Get photos for the project
+    const photos = await database
+      .select()
+      .from(constructionPhotoSchema)
+      .where(eq(constructionPhotoSchema.projectId, projectId))
+      .orderBy(constructionPhotoSchema.createdAt);
 
-    return NextResponse.json(project);
+    // Transform photos to match expected format
+    const transformedPhotos = photos.map((photo: any) => ({
+      id: photo.id.toString(),
+      publicId: photo.fileName,
+      url: photo.fileUrl,
+      name: photo.originalName,
+      size: photo.fileSize,
+      uploadedAt: photo.createdAt,
+      tags: photo.tags ? (typeof photo.tags === 'string' ? photo.tags.split(',').map(tag => tag.trim()) : photo.tags) : [],
+    }));
+
+    // Add photos to project
+    const projectWithPhotos = {
+      ...project,
+      photos: transformedPhotos,
+    };
+
+    logger.info(`Project fetched: ${projectId} with ${photos.length} photos by user ${userId}`);
+
+    return NextResponse.json(projectWithPhotos);
   } catch (error) {
+    console.error('💥 Error fetching project:', error);
     logger.error('Error fetching project:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch project' },
+      { 
+        error: 'Failed to fetch project',
+        details: error instanceof Error ? error.message : 'Unknown error',
+        projectId: params.id
+      },
       { status: 500 },
     );
   }
@@ -102,11 +141,11 @@ export async function PUT(
     // Check if project exists and belongs to organization
     const [existingProject] = await database
       .select()
-      .from(projectSchema)
+      .from(constructionProjectSchema)
       .where(
         and(
-          eq(projectSchema.id, projectId),
-          eq(projectSchema.organizationId, orgId),
+          eq(constructionProjectSchema.id, projectId),
+          eq(constructionProjectSchema.organizationId, orgId),
         ),
       )
       .limit(1);
@@ -117,7 +156,7 @@ export async function PUT(
 
     // Update project
     const [updatedProject] = await database
-      .update(projectSchema)
+      .update(constructionProjectSchema)
       .set({
         ...validatedData,
         startDate: validatedData.startDate ? new Date(validatedData.startDate) : undefined,
@@ -126,8 +165,8 @@ export async function PUT(
       })
       .where(
         and(
-          eq(projectSchema.id, projectId),
-          eq(projectSchema.organizationId, orgId),
+          eq(constructionProjectSchema.id, projectId),
+          eq(constructionProjectSchema.organizationId, orgId),
         ),
       )
       .returning();
@@ -172,11 +211,11 @@ export async function DELETE(
     // Check if project exists and belongs to organization
     const [existingProject] = await database
       .select()
-      .from(projectSchema)
+      .from(constructionProjectSchema)
       .where(
         and(
-          eq(projectSchema.id, projectId),
-          eq(projectSchema.organizationId, orgId),
+          eq(constructionProjectSchema.id, projectId),
+          eq(constructionProjectSchema.organizationId, orgId),
         ),
       )
       .limit(1);
@@ -188,11 +227,11 @@ export async function DELETE(
     // Get all photos associated with this project before deletion
     const projectPhotos = await database
       .select()
-      .from(projectPhotoSchema)
+      .from(constructionPhotoSchema)
       .where(
         and(
-          eq(projectPhotoSchema.projectId, projectId),
-          eq(projectPhotoSchema.organizationId, orgId),
+          eq(constructionPhotoSchema.projectId, projectId),
+          eq(constructionPhotoSchema.organizationId, orgId),
         ),
       );
 
@@ -218,11 +257,11 @@ export async function DELETE(
 
     // Delete project (this will cascade delete daily logs and photos from database)
     await database
-      .delete(projectSchema)
+      .delete(constructionProjectSchema)
       .where(
         and(
-          eq(projectSchema.id, projectId),
-          eq(projectSchema.organizationId, orgId),
+          eq(constructionProjectSchema.id, projectId),
+          eq(constructionProjectSchema.organizationId, orgId),
         ),
       );
 

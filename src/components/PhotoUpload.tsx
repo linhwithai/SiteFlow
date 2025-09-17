@@ -18,12 +18,14 @@ type PhotoUploadProps = {
     name: string;
     size: number;
   }>;
+  pendingPhotos?: Array<{file: File, cloudinaryResult: any}>;
   maxFiles?: number;
   folder?: string;
   tags?: string[];
   disabled?: boolean;
   className?: string;
   pendingFiles?: File[];
+  isLoading?: boolean;
 };
 
 type UploadStatus = 'idle' | 'uploading' | 'success' | 'error';
@@ -52,12 +54,14 @@ export function PhotoUpload({
   onRemove: _onRemove,
   onSave: _onSave,
   photos = defaultPhotos,
+  pendingPhotos = [],
   maxFiles = 10,
   folder: _folder = 'siteflow',
   tags: _tags = defaultTags,
   disabled = false,
   className = '',
   pendingFiles: _pendingFiles = defaultPendingFiles,
+  isLoading = false,
 }: PhotoUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress] = useState(0);
@@ -477,11 +481,69 @@ export function PhotoUpload({
         </div>
       )}
 
+      {/* Pending Photos Gallery */}
+      {pendingPhotos.length > 0 && (
+        <div className="space-y-3">
+          <h4 className="text-sm font-medium text-gray-900 dark:text-white">
+            Ảnh đã upload ({pendingPhotos.length})
+          </h4>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+            {pendingPhotos.map((pendingPhoto, index) => (
+              <div key={index} className="group relative">
+                <div className="aspect-square overflow-hidden rounded-lg border border-green-200 bg-green-50 dark:border-green-700 dark:bg-green-900/20">
+                  <img
+                    src={pendingPhoto.cloudinaryResult?.url || URL.createObjectURL(pendingPhoto.file)}
+                    alt={pendingPhoto.file.name}
+                    className="size-full object-cover transition-transform group-hover:scale-105"
+                    loading="lazy"
+                  />
+                  <div className="absolute top-2 right-2 rounded-full bg-green-500 p-1">
+                    <CheckCircle className="size-3 text-white" />
+                  </div>
+                </div>
+                <div className="absolute inset-0 rounded-lg bg-black bg-opacity-0 transition-all group-hover:bg-opacity-30">
+                  <div className="flex h-full items-center justify-center opacity-0 transition-opacity group-hover:opacity-100">
+                    <div className="flex gap-1">
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        className="size-8 p-0"
+                        onClick={() => window.open(pendingPhoto.cloudinaryResult?.url, '_blank')}
+                        title="Xem ảnh gốc"
+                      >
+                        <ImageIcon className="size-4" />
+                      </Button>
+                      {_onRemove && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          className="size-8 p-0"
+                          onClick={() => _onRemove(index)}
+                          title="Xóa ảnh"
+                        >
+                          <X className="size-4" />
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-1 truncate text-xs text-gray-600 dark:text-gray-400">
+                  {pendingPhoto.file.name}
+                </div>
+                <div className="text-xs text-gray-500">
+                  {(pendingPhoto.file.size / 1024 / 1024).toFixed(1)} MB
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Uploaded Photos Gallery */}
       {photos.length > 0 && (
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-gray-900 dark:text-white">
-            Ảnh đã upload ({photos.length})
+            Ảnh đã lưu ({photos.length})
           </h4>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {photos.map((photo, index) => (
@@ -533,11 +595,21 @@ export function PhotoUpload({
       )}
 
       {/* Empty State */}
-      {photos.length === 0 && !isUploading && (
+      {photos.length === 0 && pendingPhotos.length === 0 && !isUploading && !isLoading && (
         <div className="py-8 text-center">
           <ImageIcon className="mx-auto mb-4 size-12 text-gray-400 dark:text-gray-600" />
           <p className="text-gray-600 dark:text-gray-400">
             Chưa có ảnh nào. Hãy upload ảnh đầu tiên!
+          </p>
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="py-8 text-center">
+          <Loader2 className="mx-auto mb-4 size-12 animate-spin text-blue-600" />
+          <p className="text-gray-600 dark:text-gray-400">
+            Đang xử lý ảnh...
           </p>
         </div>
       )}

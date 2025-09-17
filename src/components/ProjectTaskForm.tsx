@@ -12,17 +12,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-// import { TASK_PRIORITY, TASK_TYPE } from '@/types/Enum';
+import { CONSTRUCTION_TASK_PRIORITY, CONSTRUCTION_TASK_TYPE } from '@/types/Enum';
 import type { CreateProjectTaskRequest, ProjectTask, UpdateProjectTaskRequest } from '@/types/Project';
 
 const taskSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().optional(),
+  taskTitle: z.string().min(1, 'Title is required'),
+  taskDescription: z.string().optional(),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
-  type: z.enum(['CONSTRUCTION', 'INSPECTION', 'MAINTENANCE', 'SAFETY', 'QUALITY', 'ADMINISTRATIVE', 'OTHER']),
+  taskType: z.enum(['FOUNDATION', 'STRUCTURE', 'FINISHING', 'MEP', 'INSPECTION', 'SAFETY', 'QUALITY', 'ADMINISTRATIVE']),
   assignedTo: z.string().optional(),
   dueDate: z.string().optional(),
-  estimatedHours: z.number().min(0).optional(),
+  estimatedWorkHours: z.number().min(0).optional(),
   tags: z.array(z.string()).optional(),
   dependencies: z.array(z.string()).optional(),
 });
@@ -45,13 +45,14 @@ const priorityOptions = [
 ];
 
 const typeOptions = [
-  { value: 'CONSTRUCTION', label: 'Construction' },
+  { value: 'FOUNDATION', label: 'Foundation' },
+  { value: 'STRUCTURE', label: 'Structure' },
+  { value: 'FINISHING', label: 'Finishing' },
+  { value: 'MEP', label: 'MEP' },
   { value: 'INSPECTION', label: 'Inspection' },
-  { value: 'MAINTENANCE', label: 'Maintenance' },
   { value: 'SAFETY', label: 'Safety' },
   { value: 'QUALITY', label: 'Quality' },
   { value: 'ADMINISTRATIVE', label: 'Administrative' },
-  { value: 'OTHER', label: 'Other' },
 ];
 
 export function ProjectTaskForm({
@@ -78,13 +79,13 @@ export function ProjectTaskForm({
   } = useForm<TaskFormData>({
     resolver: zodResolver(taskSchema),
     defaultValues: {
-      title: task?.title || '',
-      description: task?.description || '',
+      taskTitle: task?.taskTitle || '',
+      taskDescription: task?.taskDescription || '',
       priority: task?.priority?.toUpperCase() as any || 'MEDIUM',
-      type: task?.type?.toUpperCase() as any || 'OTHER',
+      taskType: task?.taskType?.toUpperCase() as any || 'ADMINISTRATIVE',
       assignedTo: task?.assignedTo || '',
       dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().split('T')[0] : '',
-      estimatedHours: task?.estimatedHours || undefined,
+      estimatedWorkHours: task?.estimatedWorkHours || undefined,
     },
   });
 
@@ -141,24 +142,24 @@ export function ProjectTaskForm({
         <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-6">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="taskTitle">Title *</Label>
             <Input
-              id="title"
-              {...register('title')}
+              id="taskTitle"
+              {...register('taskTitle')}
               placeholder="Enter task title"
-              className={errors.title ? 'border-red-500' : ''}
+              className={errors.taskTitle ? 'border-red-500' : ''}
             />
-            {errors.title && (
-              <p className="text-sm text-red-500">{errors.title.message}</p>
+            {errors.taskTitle && (
+              <p className="text-sm text-red-500">{errors.taskTitle.message}</p>
             )}
           </div>
 
           {/* Description */}
           <div className="space-y-2">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="taskDescription">Description</Label>
             <Textarea
-              id="description"
-              {...register('description')}
+              id="taskDescription"
+              {...register('taskDescription')}
               placeholder="Enter task description"
               rows={3}
             />
@@ -186,13 +187,13 @@ export function ProjectTaskForm({
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="type">Type *</Label>
+              <Label htmlFor="taskType">Type *</Label>
               <Select
-                value={watchedValues.type}
-                onValueChange={value => setValue('type', value as any)}
+                value={watchedValues.taskType}
+                onValueChange={value => setValue('taskType', value as any)}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select type" />
+                  <SelectValue placeholder="Select taskType" />
                 </SelectTrigger>
                 <SelectContent>
                   {typeOptions.map(option => (
@@ -236,15 +237,15 @@ export function ProjectTaskForm({
 
           {/* Estimated Hours */}
           <div className="space-y-2">
-            <Label htmlFor="estimatedHours">Estimated Hours</Label>
+            <Label htmlFor="estimatedWorkHours">Estimated Hours</Label>
             <div className="relative">
               <Clock className="absolute left-3 top-3 size-4 text-gray-400" />
               <Input
-                id="estimatedHours"
+                id="estimatedWorkHours"
                 type="number"
                 min="0"
                 step="0.5"
-                {...register('estimatedHours', { valueAsNumber: true })}
+                {...register('estimatedWorkHours', { valueAsNumber: true })}
                 placeholder="0"
                 className="pl-10"
               />

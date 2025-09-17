@@ -9,8 +9,8 @@ import { NextResponse } from 'next/server';
 
 import { db } from '@/libs/DB';
 import { logger } from '@/libs/Logger';
-import { projectSchema } from '@/models/Schema';
-import { PROJECT_STATUS } from '@/types/Enum';
+import { constructionProjectSchema } from '@/models/Schema';
+import { CONSTRUCTION_PROJECT_STATUS } from '@/types/Enum';
 
 export async function GET() {
   try {
@@ -25,19 +25,19 @@ export async function GET() {
     const [stats] = await database
       .select({
         total: sql<number>`count(*)`,
-        active: sql<number>`count(case when status = ${PROJECT_STATUS.ACTIVE} then 1 end)`,
-        completed: sql<number>`count(case when status = ${PROJECT_STATUS.COMPLETED} then 1 end)`,
-        onHold: sql<number>`count(case when status = ${PROJECT_STATUS.ON_HOLD} then 1 end)`,
-        cancelled: sql<number>`count(case when status = ${PROJECT_STATUS.CANCELLED} then 1 end)`,
-        planning: sql<number>`count(case when status = ${PROJECT_STATUS.PLANNING} then 1 end)`,
+        active: sql<number>`count(case when status = ${CONSTRUCTION_PROJECT_STATUS.ACTIVE} then 1 end)`,
+        completed: sql<number>`count(case when status = ${CONSTRUCTION_PROJECT_STATUS.COMPLETED} then 1 end)`,
+        onHold: sql<number>`count(case when status = ${CONSTRUCTION_PROJECT_STATUS.ON_HOLD} then 1 end)`,
+        cancelled: sql<number>`count(case when status = ${CONSTRUCTION_PROJECT_STATUS.CANCELLED} then 1 end)`,
+        planning: sql<number>`count(case when status = ${CONSTRUCTION_PROJECT_STATUS.PLANNING} then 1 end)`,
         totalBudget: sql<number>`coalesce(sum(budget), 0)`,
         averageBudget: sql<number>`coalesce(avg(budget), 0)`,
       })
-      .from(projectSchema)
+      .from(constructionProjectSchema)
       .where(
         and(
-          eq(projectSchema.organizationId, orgId),
-          eq(projectSchema.isActive, true),
+          eq(constructionProjectSchema.organizationId, orgId),
+          eq(constructionProjectSchema.isActive, true),
         ),
       );
 

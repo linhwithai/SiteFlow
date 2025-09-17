@@ -8,7 +8,7 @@ import { EditProjectModal } from '@/components/EditProjectModal';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { PROJECT_STATUS } from '@/types/Enum';
+import { CONSTRUCTION_PROJECT_STATUS } from '@/types/Enum';
 import type { Project, ProjectFilters, UpdateProjectRequest } from '@/types/Project';
 
 type User = {
@@ -32,19 +32,19 @@ type ProjectListProps = {
 };
 
 const statusLabels = {
-  [PROJECT_STATUS.PLANNING]: 'Lập kế hoạch',
-  [PROJECT_STATUS.ACTIVE]: 'Đang thực hiện',
-  [PROJECT_STATUS.ON_HOLD]: 'Tạm dừng',
-  [PROJECT_STATUS.COMPLETED]: 'Hoàn thành',
-  [PROJECT_STATUS.CANCELLED]: 'Hủy bỏ',
+  [CONSTRUCTION_PROJECT_STATUS.PLANNING]: 'Lập kế hoạch',
+  [CONSTRUCTION_PROJECT_STATUS.ACTIVE]: 'Đang thi công',
+  [CONSTRUCTION_PROJECT_STATUS.ON_HOLD]: 'Tạm dừng',
+  [CONSTRUCTION_PROJECT_STATUS.COMPLETED]: 'Hoàn thành',
+  [CONSTRUCTION_PROJECT_STATUS.CANCELLED]: 'Hủy bỏ',
 };
 
 const statusColors = {
-  [PROJECT_STATUS.PLANNING]: 'bg-blue-100 text-blue-800',
-  [PROJECT_STATUS.ACTIVE]: 'bg-green-100 text-green-800',
-  [PROJECT_STATUS.ON_HOLD]: 'bg-yellow-100 text-yellow-800',
-  [PROJECT_STATUS.COMPLETED]: 'bg-gray-100 text-gray-800',
-  [PROJECT_STATUS.CANCELLED]: 'bg-red-100 text-red-800',
+  [CONSTRUCTION_PROJECT_STATUS.PLANNING]: 'bg-blue-100 text-blue-800',
+  [CONSTRUCTION_PROJECT_STATUS.ACTIVE]: 'bg-green-100 text-green-800',
+  [CONSTRUCTION_PROJECT_STATUS.ON_HOLD]: 'bg-yellow-100 text-yellow-800',
+  [CONSTRUCTION_PROJECT_STATUS.COMPLETED]: 'bg-gray-100 text-gray-800',
+  [CONSTRUCTION_PROJECT_STATUS.CANCELLED]: 'bg-red-100 text-red-800',
 };
 
 export function ProjectList({
@@ -190,11 +190,11 @@ export function ProjectList({
                 className="rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
                 <option value="">Tất cả trạng thái</option>
-                <option value={PROJECT_STATUS.PLANNING}>Lập kế hoạch</option>
-                <option value={PROJECT_STATUS.ACTIVE}>Đang thực hiện</option>
-                <option value={PROJECT_STATUS.ON_HOLD}>Tạm dừng</option>
-                <option value={PROJECT_STATUS.COMPLETED}>Hoàn thành</option>
-                <option value={PROJECT_STATUS.CANCELLED}>Hủy bỏ</option>
+                <option value={CONSTRUCTION_PROJECT_STATUS.PLANNING}>Lập kế hoạch</option>
+                <option value={CONSTRUCTION_PROJECT_STATUS.ACTIVE}>Đang thi công</option>
+                <option value={CONSTRUCTION_PROJECT_STATUS.ON_HOLD}>Tạm dừng</option>
+                <option value={CONSTRUCTION_PROJECT_STATUS.COMPLETED}>Hoàn thành</option>
+                <option value={CONSTRUCTION_PROJECT_STATUS.CANCELLED}>Hủy bỏ</option>
               </select>
             </div>
           </div>

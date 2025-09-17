@@ -1,6 +1,7 @@
 'use client';
 
 import { BarChart3, CalendarIcon, FileTextIcon, ImageIcon, TrendingUpIcon, UsersIcon } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -40,44 +41,119 @@ export function ProjectOverview({
   onGenerateReport,
   onViewTimeline,
 }: ProjectOverviewProps) {
-  // Calculate project progress (mock data for now)
-  const progress = 75;
-  const daysRemaining = 15;
-  const daysTotal = 30;
-  const daysElapsed = daysTotal - daysRemaining;
+  // Calculate project progress based on actual data
+  const calculateProgress = () => {
+    if (!project.startDate || !project.endDate) return 0;
+    
+    const start = new Date(project.startDate);
+    const end = new Date(project.endDate);
+    const today = new Date();
+    
+    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const elapsedDays = Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (elapsedDays <= 0) return 0;
+    if (elapsedDays >= totalDays) return 100;
+    
+    return Math.round((elapsedDays / totalDays) * 100);
+  };
 
-  // Mock data for charts
-  const weeklyProgress = [
-    { week: 'Tuần 1', progress: 20, logs: 5, photos: 12 },
-    { week: 'Tuần 2', progress: 35, logs: 8, photos: 18 },
-    { week: 'Tuần 3', progress: 50, logs: 12, photos: 25 },
-    { week: 'Tuần 4', progress: 65, logs: 15, photos: 32 },
-    { week: 'Tuần 5', progress: 75, logs: 18, photos: 40 },
-  ];
+  const progress = calculateProgress();
+  
+  const calculateDays = () => {
+    if (!project.startDate || !project.endDate) return { daysElapsed: 0, daysRemaining: 0 };
+    
+    const start = new Date(project.startDate);
+    const end = new Date(project.endDate);
+    const today = new Date();
+    
+    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const elapsedDays = Math.ceil((today.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const remainingDays = Math.max(0, totalDays - elapsedDays);
+    
+    return {
+      daysElapsed: Math.max(0, elapsedDays),
+      daysRemaining: remainingDays,
+    };
+  };
 
-  const recentActivities = [
-    {
-      type: 'daily-log',
-      title: 'Nhật ký mới được tạo',
-      description: 'Cập nhật tiến độ xây dựng móng cầu',
-      timestamp: '2 giờ trước',
-      user: 'Nguyễn Văn A',
-    },
-    {
-      type: 'photo-upload',
-      title: 'Ảnh công trường mới',
-      description: '5 ảnh được upload từ công trường',
-      timestamp: '4 giờ trước',
-      user: 'Trần Thị B',
-    },
-    {
-      type: 'daily-log',
-      title: 'Báo cáo tuần',
-      description: 'Tổng kết công việc tuần 5',
-      timestamp: '1 ngày trước',
-      user: 'Lê Văn C',
-    },
-  ];
+  const { daysElapsed, daysRemaining } = calculateDays();
+
+  // Calculate weekly progress based on actual data
+  const calculateWeeklyProgress = () => {
+    if (!project.startDate || !project.endDate) return [];
+    
+    const start = new Date(project.startDate);
+    const end = new Date(project.endDate);
+    const today = new Date();
+    
+    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const weeks = Math.ceil(totalDays / 7);
+    
+    const weeklyData = [];
+    for (let i = 0; i < weeks; i++) {
+      const weekStart = new Date(start);
+      weekStart.setDate(start.getDate() + (i * 7));
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      
+      // Calculate progress for this week
+      const weekElapsed = Math.min(7, Math.ceil((today.getTime() - weekStart.getTime()) / (1000 * 60 * 60 * 24)));
+      const weekProgress = Math.min(100, Math.round((weekElapsed / 7) * 100));
+      
+      // Use actual data if available, otherwise show calculated progress
+      const logs = dailyLogStats?.thisWeek || 0;
+      const photos = photosCount || 0;
+      
+      weeklyData.push({
+        week: `Tuần ${i + 1}`,
+        progress: weekProgress,
+        logs: Math.round(logs / weeks) || 0,
+        photos: Math.round(photos / weeks) || 0,
+      });
+    }
+    
+    return weeklyData;
+  };
+
+  const weeklyProgress = calculateWeeklyProgress();
+
+  // State for recent activities
+  const [recentActivities, setRecentActivities] = useState<any[]>([]);
+  const [isLoadingActivities, setIsLoadingActivities] = useState(true);
+
+  // Fetch recent activities
+  useEffect(() => {
+    const fetchActivities = async () => {
+      try {
+        setIsLoadingActivities(true);
+        const response = await fetch(`/api/projects/${project.id}/activities`);
+        if (response.ok) {
+          const data = await response.json();
+          setRecentActivities(data.activities || []);
+        }
+      } catch (error) {
+        console.error('Error fetching activities:', error);
+      } finally {
+        setIsLoadingActivities(false);
+      }
+    };
+
+    fetchActivities();
+  }, [project.id]);
+
+  // Format timestamp to relative time
+  const formatRelativeTime = (timestamp: string | Date) => {
+    const now = new Date();
+    const time = new Date(timestamp);
+    const diffInSeconds = Math.floor((now.getTime() - time.getTime()) / 1000);
+
+    if (diffInSeconds < 60) return 'Vừa xong';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)} phút trước`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)} giờ trước`;
+    if (diffInSeconds < 2592000) return `${Math.floor(diffInSeconds / 86400)} ngày trước`;
+    return `${Math.floor(diffInSeconds / 2592000)} tháng trước`;
+  };
 
   const formatDate = (dateString: string | Date | undefined) => {
     if (!dateString) {
@@ -104,88 +180,84 @@ export function ProjectOverview({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
+            <div className="space-y-6">
               {/* Progress Bar */}
-              <div className="space-y-2">
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span>Tiến độ tổng thể</span>
-                  <span className="font-semibold text-blue-600">
-                    {progress}
-                    %
+                  <span className="font-medium">Tiến độ tổng thể</span>
+                  <span className="font-bold text-blue-600 text-lg">
+                    {progress}%
                   </span>
                 </div>
-                <Progress value={progress} className="h-3" />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>
-                    {daysElapsed}
-                    {' '}
-                    ngày đã qua
+                <Progress value={progress} className="h-4" />
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span className="flex items-center gap-1">
+                    <div className="size-2 rounded-full bg-blue-500"></div>
+                    {daysElapsed} ngày đã qua
                   </span>
-                  <span>
-                    {daysRemaining}
-                    {' '}
-                    ngày còn lại
+                  <span className="flex items-center gap-1">
+                    <div className="size-2 rounded-full bg-gray-300"></div>
+                    {daysRemaining} ngày còn lại
                   </span>
                 </div>
               </div>
 
               {/* Timeline Visualization */}
-              <div className="mt-6">
-                <h4 className="mb-3 text-sm font-medium">Timeline dự án</h4>
-                <div className="flex items-center gap-2">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
-                    <div
-                      className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
-                      style={{ width: `${progress}%` }}
-                    />
+              <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-800">
+                <h4 className="mb-3 text-sm font-medium text-gray-700 dark:text-gray-300">Timeline dự án</h4>
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <div className="h-3 flex-1 overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="h-full bg-gradient-to-r from-blue-500 to-green-500 transition-all duration-500"
+                        style={{ width: `${progress}%` }}
+                      />
+                    </div>
                   </div>
-                  <span className="whitespace-nowrap text-xs text-gray-500">
-                    {formatDate(project.startDate)}
-                    {' '}
-                    -
-                    {formatDate(project.endDate)}
-                  </span>
+                  <div className="flex justify-between text-xs text-gray-500">
+                    <span>{formatDate(project.startDate)}</span>
+                    <span>{formatDate(project.endDate)}</span>
+                  </div>
                 </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Quick Stats */}
+        {/* Enhanced Quick Stats */}
         <Card>
           <CardHeader>
             <CardTitle className="text-base">Thống kê nhanh</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-lg bg-purple-50 p-3 dark:bg-purple-900/20">
               <div className="flex items-center gap-2">
                 <FileTextIcon className="size-4 text-purple-600" />
-                <span className="text-sm">Nhật ký</span>
+                <span className="text-sm font-medium">Nhật ký thi công</span>
               </div>
-              <span className="font-semibold text-purple-600">{dailyLogStats?.total || 0}</span>
+              <span className="font-bold text-purple-600 text-lg">{dailyLogStats?.total || 0}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-lg bg-orange-50 p-3 dark:bg-orange-900/20">
               <div className="flex items-center gap-2">
                 <ImageIcon className="size-4 text-orange-600" />
-                <span className="text-sm">Hình ảnh</span>
+                <span className="text-sm font-medium">Hình ảnh công trường</span>
               </div>
-              <span className="font-semibold text-orange-600">{photosCount}</span>
+              <span className="font-bold text-orange-600 text-lg">{photosCount}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-lg bg-green-50 p-3 dark:bg-green-900/20">
               <div className="flex items-center gap-2">
                 <UsersIcon className="size-4 text-green-600" />
-                <span className="text-sm">Công nhân</span>
+                <span className="text-sm font-medium">Công nhân TB</span>
               </div>
-              <span className="font-semibold text-green-600">{dailyLogStats?.averageWorkers || 0}</span>
+              <span className="font-bold text-green-600 text-lg">{dailyLogStats?.averageWorkers || 0}</span>
             </div>
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between rounded-lg bg-blue-50 p-3 dark:bg-blue-900/20">
               <div className="flex items-center gap-2">
                 <CalendarIcon className="size-4 text-blue-600" />
-                <span className="text-sm">Giờ làm việc</span>
+                <span className="text-sm font-medium">Tổng giờ làm</span>
               </div>
-              <span className="font-semibold text-blue-600">
-                {dailyLogStats?.totalWorkHours || 0}
-                h
+              <span className="font-bold text-blue-600 text-lg">
+                {dailyLogStats?.totalWorkHours || 0}h
               </span>
             </div>
           </CardContent>
@@ -202,38 +274,46 @@ export function ProjectOverview({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {weeklyProgress.map((week, index) => (
-              <div key={index} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium">{week.week}</span>
-                  <span className="text-sm text-gray-500">
-                    {week.progress}
-                    %
-                  </span>
-                </div>
-                <div className="flex gap-2">
-                  <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
-                    <div
-                      className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500"
-                      style={{ width: `${week.progress}%` }}
-                    />
-                  </div>
-                  <div className="flex gap-2 text-xs text-gray-500">
-                    <span>
-                      {week.logs}
-                      {' '}
-                      nhật ký
-                    </span>
-                    <span>•</span>
-                    <span>
-                      {week.photos}
-                      {' '}
-                      ảnh
-                    </span>
-                  </div>
-                </div>
+            {weeklyProgress.length === 0 ? (
+              <div className="text-center py-8">
+                <BarChart3 className="mx-auto size-12 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-500">Chưa có dữ liệu tiến độ theo tuần</p>
               </div>
-            ))}
+            ) : (
+              weeklyProgress.map((week, index) => (
+                <div key={index} className="space-y-3 rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <span className="font-medium text-gray-900 dark:text-white">{week.week}</span>
+                    <span className="font-bold text-green-600 text-lg">
+                      {week.progress}%
+                    </span>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="h-3 flex-1 overflow-hidden rounded-full bg-gray-200">
+                      <div
+                        className="h-full bg-gradient-to-r from-green-400 to-green-600 transition-all duration-500"
+                        style={{ width: `${week.progress}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between text-xs text-gray-500">
+                      <div className="flex items-center gap-4">
+                        <span className="flex items-center gap-1">
+                          <FileTextIcon className="size-3 text-purple-500" />
+                          {week.logs} nhật ký
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <ImageIcon className="size-3 text-orange-500" />
+                          {week.photos} ảnh
+                        </span>
+                      </div>
+                      <span className="text-gray-400">
+                        {week.progress < 30 ? 'Bắt đầu' : week.progress < 70 ? 'Đang thực hiện' : 'Gần hoàn thành'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
@@ -248,66 +328,114 @@ export function ProjectOverview({
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            {recentActivities.map((activity, index) => (
-              <div key={index} className="flex items-start gap-3">
-                <div className="shrink-0">
-                  {activity.type === 'daily-log' && (
-                    <div className="flex size-8 items-center justify-center rounded-full bg-purple-100">
-                      <FileTextIcon className="size-4 text-purple-600" />
-                    </div>
-                  )}
-                  {activity.type === 'photo-upload' && (
-                    <div className="flex size-8 items-center justify-center rounded-full bg-orange-100">
-                      <ImageIcon className="size-4 text-orange-600" />
-                    </div>
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-gray-900">{activity.title}</p>
-                  <p className="text-sm text-gray-600">{activity.description}</p>
-                  <div className="mt-1 flex items-center gap-2">
-                    <span className="text-xs text-gray-500">{activity.timestamp}</span>
-                    <span className="text-xs text-gray-400">•</span>
-                    <span className="text-xs text-gray-500">{activity.user}</span>
-                  </div>
+            {isLoadingActivities ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="flex items-center gap-2 text-sm text-gray-500">
+                  <div className="size-4 animate-spin rounded-full border-2 border-gray-300 border-t-purple-600"></div>
+                  Đang tải hoạt động...
                 </div>
               </div>
-            ))}
+            ) : recentActivities.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-8">
+                <CalendarIcon className="size-12 text-gray-400" />
+                <p className="mt-2 text-sm text-gray-500">Chưa có hoạt động nào</p>
+                <p className="text-xs text-gray-400">Các hoạt động sẽ xuất hiện ở đây khi có nhật ký hoặc ảnh mới</p>
+              </div>
+            ) : (
+              recentActivities.map((activity, index) => (
+                <div key={activity.id || index} className="flex items-start gap-3 rounded-lg border border-gray-200 p-3 transition-colors hover:bg-gray-50 dark:border-gray-700 dark:hover:bg-gray-800">
+                  <div className="shrink-0">
+                    {activity.type === 'daily-log' && (
+                      <div className="flex size-10 items-center justify-center rounded-full bg-purple-100 dark:bg-purple-900/30">
+                        <FileTextIcon className="size-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                    )}
+                    {activity.type === 'photo-upload' && (
+                      <div className="flex size-10 items-center justify-center rounded-full bg-orange-100 dark:bg-orange-900/30">
+                        <ImageIcon className="size-5 text-orange-600 dark:text-orange-400" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-gray-900 dark:text-white">{activity.title}</p>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{activity.description}</p>
+                    <div className="mt-2 flex items-center gap-3">
+                      <span className="text-xs text-gray-500 dark:text-gray-400">{formatRelativeTime(activity.timestamp)}</span>
+                      <span className="text-xs text-gray-400">•</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">User {activity.userId}</span>
+                      {activity.type === 'daily-log' && (
+                        <span className="rounded-full bg-purple-100 px-2 py-0.5 text-xs text-purple-600 dark:bg-purple-900/30 dark:text-purple-400">
+                          Nhật ký
+                        </span>
+                      )}
+                      {activity.type === 'photo-upload' && (
+                        <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs text-orange-600 dark:bg-orange-900/30 dark:text-orange-400">
+                          Hình ảnh
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>
 
-      {/* Action Buttons */}
+      {/* Quick Actions */}
       <Card>
-        <CardContent className="pt-6">
+        <CardHeader>
+          <CardTitle className="text-lg">Thao tác nhanh</CardTitle>
+        </CardHeader>
+        <CardContent>
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
             <button
               onClick={onViewDailyLogs}
-              className="flex flex-col items-center gap-2 rounded-lg border border-purple-200 bg-purple-50 p-4 transition-colors hover:bg-purple-100"
+              className="group flex flex-col items-center gap-3 rounded-lg border border-purple-200 bg-purple-50 p-4 transition-all hover:bg-purple-100 hover:shadow-md dark:border-purple-800 dark:bg-purple-900/20 dark:hover:bg-purple-900/30"
             >
-              <FileTextIcon className="size-6 text-purple-600" />
-              <span className="text-sm font-medium text-purple-700">Xem nhật ký</span>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-purple-100 group-hover:bg-purple-200 dark:bg-purple-800 dark:group-hover:bg-purple-700">
+                <FileTextIcon className="size-5 text-purple-600 dark:text-purple-400" />
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-purple-700 dark:text-purple-300">Nhật ký thi công</div>
+                <div className="text-xs text-purple-500 dark:text-purple-400">Ghi chép hàng ngày</div>
+              </div>
             </button>
             <button
               onClick={onViewPhotos}
-              className="flex flex-col items-center gap-2 rounded-lg border border-orange-200 bg-orange-50 p-4 transition-colors hover:bg-orange-100"
+              className="group flex flex-col items-center gap-3 rounded-lg border border-orange-200 bg-orange-50 p-4 transition-all hover:bg-orange-100 hover:shadow-md dark:border-orange-800 dark:bg-orange-900/20 dark:hover:bg-orange-900/30"
             >
-              <ImageIcon className="size-6 text-orange-600" />
-              <span className="text-sm font-medium text-orange-700">Xem hình ảnh</span>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-orange-100 group-hover:bg-orange-200 dark:bg-orange-800 dark:group-hover:bg-orange-700">
+                <ImageIcon className="size-5 text-orange-600 dark:text-orange-400" />
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-orange-700 dark:text-orange-300">Hình ảnh công trường</div>
+                <div className="text-xs text-orange-500 dark:text-orange-400">Quản lý ảnh</div>
+              </div>
             </button>
             <button
               onClick={onGenerateReport}
-              className="flex flex-col items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 p-4 transition-colors hover:bg-blue-100"
+              className="group flex flex-col items-center gap-3 rounded-lg border border-blue-200 bg-blue-50 p-4 transition-all hover:bg-blue-100 hover:shadow-md dark:border-blue-800 dark:bg-blue-900/20 dark:hover:bg-blue-900/30"
             >
-              <BarChart3 className="size-6 text-blue-600" />
-              <span className="text-sm font-medium text-blue-700">Tạo báo cáo</span>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-blue-100 group-hover:bg-blue-200 dark:bg-blue-800 dark:group-hover:bg-blue-700">
+                <BarChart3 className="size-5 text-blue-600 dark:text-blue-400" />
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-blue-700 dark:text-blue-300">Báo cáo dự án</div>
+                <div className="text-xs text-blue-500 dark:text-blue-400">Xuất báo cáo</div>
+              </div>
             </button>
             <button
               onClick={onViewTimeline}
-              className="flex flex-col items-center gap-2 rounded-lg border border-green-200 bg-green-50 p-4 transition-colors hover:bg-green-100"
+              className="group flex flex-col items-center gap-3 rounded-lg border border-green-200 bg-green-50 p-4 transition-all hover:bg-green-100 hover:shadow-md dark:border-green-800 dark:bg-green-900/20 dark:hover:bg-green-900/30"
             >
-              <CalendarIcon className="size-6 text-green-600" />
-              <span className="text-sm font-medium text-green-700">Xem timeline</span>
+              <div className="flex size-10 items-center justify-center rounded-lg bg-green-100 group-hover:bg-green-200 dark:bg-green-800 dark:group-hover:bg-green-700">
+                <CalendarIcon className="size-5 text-green-600 dark:text-green-400" />
+              </div>
+              <div className="text-center">
+                <div className="text-sm font-medium text-green-700 dark:text-green-300">Timeline dự án</div>
+                <div className="text-xs text-green-500 dark:text-green-400">Lịch trình</div>
+              </div>
             </button>
           </div>
         </CardContent>

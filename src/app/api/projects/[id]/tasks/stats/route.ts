@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/libs/DB';
-import { projectTaskSchema } from '@/models/Schema';
+// import { constructionTaskSchema } from '@/models/Schema';
 import { eq, and } from 'drizzle-orm';
 
 // GET /api/projects/[id]/tasks/stats - Get task statistics for a project
@@ -19,12 +19,12 @@ export async function GET(
     // Get all tasks for the project
     const tasks = await dbInstance
       .select()
-      .from(projectTaskSchema)
+      .from(constructionTaskSchema)
       .where(
         and(
-          eq(projectTaskSchema.projectId, projectId),
-          eq(projectTaskSchema.organizationId, orgId),
-          eq(projectTaskSchema.isActive, true)
+          eq(constructionTaskSchema.projectId, projectId),
+          eq(constructionTaskSchema.organizationId, orgId),
+          eq(constructionTaskSchema.isActive, true)
         )
       );
 

@@ -6,6 +6,8 @@ type Photo = {
   publicId: string;
   name: string;
   size: number;
+  width?: number;
+  height?: number;
   uploadedAt: Date;
   tags?: string[];
 };
@@ -25,6 +27,8 @@ export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
   const [error, setError] = useState<string | null>(null);
 
   const uploadPhoto = useCallback(async (file: File): Promise<Photo> => {
+    console.log('📸 Starting photo upload:', file.name);
+    console.log('📸 Setting isUploading to true');
     setIsUploading(true);
     setUploadProgress(0);
     setError(null);
@@ -83,6 +87,8 @@ export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
         publicId: result.data.publicId,
         name: result.data.originalName,
         size: result.data.size,
+        width: result.data.width || 0,
+        height: result.data.height || 0,
         uploadedAt: new Date(),
         tags: options.tags,
       };
@@ -100,8 +106,8 @@ export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
               url: result.data.url,
               name: result.data.originalName,
               size: result.data.size,
-              width: result.data.width,
-              height: result.data.height,
+              width: result.data.width || 0, // Fallback to 0 if undefined
+              height: result.data.height || 0, // Fallback to 0 if undefined
               tags: options.tags || [],
             }),
           });
@@ -132,8 +138,13 @@ export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
       options.onError?.(error);
       throw error;
     } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      console.log('📸 Photo upload finished:', file.name);
+      // Delay resetting upload state to ensure UI updates properly
+      setTimeout(() => {
+        console.log('📸 Setting isUploading to false');
+        setIsUploading(false);
+        setUploadProgress(0);
+      }, 100);
     }
   }, [options]);
 
@@ -204,16 +215,20 @@ export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
 
   const loadPhotos = useCallback(async () => {
     if (!options.projectId) {
+      console.log('❌ No projectId provided for loading photos');
       return;
     }
 
     try {
+      console.log('📸 Loading photos for project:', options.projectId);
       const response = await fetch(`/api/projects/${options.projectId}/photos`);
       if (!response.ok) {
         throw new Error('Failed to load photos');
       }
 
       const result = await response.json();
+      console.log('📸 Photos API response:', result);
+      
       const photosData: Photo[] = result.photos.map((photo: any) => ({
         id: photo.id.toString(),
         url: photo.url,
@@ -224,9 +239,11 @@ export function usePhotoUpload(options: UsePhotoUploadOptions = {}) {
         tags: photo.tags || [],
       }));
 
+      console.log('📸 Processed photos data:', photosData);
       setPhotos(photosData);
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Load photos failed');
+      console.error('❌ Error loading photos:', error);
       setError(error.message);
       options.onError?.(error);
     }

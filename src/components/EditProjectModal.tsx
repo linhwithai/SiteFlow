@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { PROJECT_STATUS } from '@/types/Enum';
+import { CONSTRUCTION_PROJECT_STATUS } from '@/types/Enum';
 import type { Project, UpdateProjectRequest } from '@/types/Project';
 
 type User = {
@@ -36,14 +36,14 @@ export function EditProjectModal({
 }: EditProjectModalProps) {
   const [formData, setFormData] = useState<UpdateProjectRequest>({
     name: '',
-    description: '',
+    workItemDescription: '',
     address: '',
     city: '',
     province: '',
     startDate: '',
     endDate: '',
     budget: 0,
-    status: PROJECT_STATUS.PLANNING,
+    status: CONSTRUCTION_PROJECT_STATUS.PLANNING,
     isActive: true,
   });
   const [users, setUsers] = useState<User[]>([]);
@@ -74,7 +74,7 @@ export function EditProjectModal({
     if (project) {
       setFormData({
         name: project.name || '',
-        description: project.description || '',
+        workItemDescription: project.workItemDescription || '',
         address: project.address || '',
         city: project.city || '',
         province: project.province || '',
@@ -82,7 +82,7 @@ export function EditProjectModal({
         endDate: project.endDate && project.endDate !== null ? new Date(project.endDate).toISOString().split('T')[0] : '',
         budget: project.budget || 0,
         projectManagerId: project.projectManagerId || '',
-        status: project.status || PROJECT_STATUS.PLANNING,
+        status: project.status || CONSTRUCTION_PROJECT_STATUS.PLANNING,
         isActive: project.isActive ?? true,
       });
     }
@@ -94,7 +94,7 @@ export function EditProjectModal({
       // Filter out empty strings and convert to proper types
       const cleanedData: UpdateProjectRequest = {
         name: formData.name || undefined,
-        description: formData.description || undefined,
+        workItemDescription: formData.workItemDescription || undefined,
         address: formData.address || undefined,
         city: formData.city || undefined,
         province: formData.province || undefined,
@@ -155,11 +155,11 @@ export function EditProjectModal({
 
             {/* Description */}
             <div className="space-y-2">
-              <Label htmlFor="description">Mô tả</Label>
+              <Label htmlFor="workItemDescription">Mô tả</Label>
               <Textarea
-                id="description"
-                value={formData.description}
-                onChange={e => handleInputChange('description', e.target.value)}
+                id="workItemDescription"
+                value={formData.workItemDescription}
+                onChange={e => handleInputChange('workItemDescription', e.target.value)}
                 placeholder="Nhập mô tả dự án"
                 rows={3}
               />
@@ -269,11 +269,11 @@ export function EditProjectModal({
                   <SelectValue placeholder="Chọn trạng thái" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={PROJECT_STATUS.PLANNING}>Lập kế hoạch</SelectItem>
-                  <SelectItem value={PROJECT_STATUS.ACTIVE}>Đang thực hiện</SelectItem>
-                  <SelectItem value={PROJECT_STATUS.ON_HOLD}>Tạm dừng</SelectItem>
-                  <SelectItem value={PROJECT_STATUS.COMPLETED}>Hoàn thành</SelectItem>
-                  <SelectItem value={PROJECT_STATUS.CANCELLED}>Hủy bỏ</SelectItem>
+                  <SelectItem value={CONSTRUCTION_PROJECT_STATUS.PLANNING}>Lập kế hoạch</SelectItem>
+                  <SelectItem value={CONSTRUCTION_PROJECT_STATUS.ACTIVE}>Đang thực hiện</SelectItem>
+                  <SelectItem value={CONSTRUCTION_PROJECT_STATUS.ON_HOLD}>Tạm dừng</SelectItem>
+                  <SelectItem value={CONSTRUCTION_PROJECT_STATUS.COMPLETED}>Hoàn thành</SelectItem>
+                  <SelectItem value={CONSTRUCTION_PROJECT_STATUS.CANCELLED}>Hủy bỏ</SelectItem>
                 </SelectContent>
               </Select>
             </div>

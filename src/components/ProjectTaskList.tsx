@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-// import { TASK_STATUS, TASK_PRIORITY, TASK_TYPE } from '@/types/Enum';
+// import { CONSTRUCTION_TASK_STATUS, CONSTRUCTION_TASK_PRIORITY, CONSTRUCTION_TASK_TYPE } from '@/types/Enum';
 import type { ProjectTask } from '@/types/Project';
 
 type ProjectTaskListProps = {
@@ -63,8 +63,8 @@ export function ProjectTaskList({
     const matchesStatus = selectedStatus === 'all' || task.status === selectedStatus;
     const matchesPriority = selectedPriority === 'all' || task.priority === selectedPriority;
     const matchesSearch = searchTerm === ''
-      || task.title.toLowerCase().includes(searchTerm.toLowerCase())
-      || (task.description && task.description.toLowerCase().includes(searchTerm.toLowerCase()));
+      || task.workItemTitle.toLowerCase().includes(searchTerm.toLowerCase())
+      || (task.workItemDescription && task.workItemDescription.toLowerCase().includes(searchTerm.toLowerCase()));
 
     return matchesStatus && matchesPriority && matchesSearch;
   });
@@ -74,7 +74,7 @@ export function ProjectTaskList({
   // };
 
   // const handleProgressChange = (taskId: number, newProgress: number) => {
-  //   onTaskUpdate?.(taskId, { progress: newProgress });
+  //   onTaskUpdate?.(taskId, { progressPercentage: newProgress });
   // };
 
   if (loading) {
@@ -153,7 +153,7 @@ export function ProjectTaskList({
                         <div className="flex-1">
                           <div className="mb-2 flex items-center gap-3">
                             <StatusIcon className="size-5 text-gray-500" />
-                            <h3 className="text-lg font-semibold">{task.title}</h3>
+                            <h3 className="text-lg font-semibold">{task.workItemTitle}</h3>
                             <Badge className={statusInfo.color}>
                               {statusInfo.label}
                             </Badge>
@@ -162,8 +162,8 @@ export function ProjectTaskList({
                             </Badge>
                           </div>
 
-                          {task.description && (
-                            <p className="mb-3 text-gray-600">{task.description}</p>
+                          {task.workItemDescription && (
+                            <p className="mb-3 text-gray-600">{task.workItemDescription}</p>
                           )}
 
                           <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500">
@@ -187,21 +187,21 @@ export function ProjectTaskList({
                               </div>
                             )}
 
-                            {task.estimatedHours && (
+                            {task.estimatedWorkHours && (
                               <div className="flex items-center gap-1">
                                 <Clock className="size-4" />
                                 <span>
-                                  {task.estimatedHours}
+                                  {task.estimatedWorkHours}
                                   h estimated
                                 </span>
                               </div>
                             )}
 
-                            {task.actualHours && (
+                            {task.actualWorkHours && (
                               <div className="flex items-center gap-1">
                                 <Clock className="size-4" />
                                 <span>
-                                  {task.actualHours}
+                                  {task.actualWorkHours}
                                   h actual
                                 </span>
                               </div>
@@ -213,14 +213,14 @@ export function ProjectTaskList({
                             <div className="mb-1 flex items-center justify-between text-sm">
                               <span>Progress</span>
                               <span>
-                                {task.progress}
+                                {task.progressPercentage}
                                 %
                               </span>
                             </div>
                             <div className="h-2 w-full rounded-full bg-gray-200">
                               <div
                                 className="h-2 rounded-full bg-blue-600 transition-all duration-300"
-                                style={{ width: `${task.progress}%` }}
+                                style={{ width: `${task.progressPercentage}%` }}
                               />
                             </div>
                           </div>

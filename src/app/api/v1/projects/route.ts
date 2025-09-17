@@ -12,13 +12,13 @@ import { z } from 'zod';
 
 import { db } from '@/libs/DB';
 import { logger } from '@/libs/Logger';
-import { projectSchema } from '@/models/Schema';
-import { PROJECT_STATUS } from '@/types/Enum';
+import { constructionProjectSchema } from '@/models/Schema';
+import { CONSTRUCTION_PROJECT_STATUS } from '@/types/Enum';
 
 // Validation schemas
 const createProjectSchema = z.object({
   name: z.string().min(1, 'Project name is required').max(255, 'Project name too long'),
-  description: z.string().max(1000, 'Description too long').optional(),
+  workItemDescription: z.string().max(1000, 'Description too long').optional(),
   address: z.string().max(500, 'Address too long').optional(),
   city: z.string().max(100, 'City name too long').optional(),
   province: z.string().max(100, 'Province name too long').optional(),
@@ -31,7 +31,7 @@ const createProjectSchema = z.object({
 const querySchema = z.object({
   page: z.string().transform(Number).default('1'),
   limit: z.string().transform(Number).default('10'),
-  status: z.enum(Object.values(PROJECT_STATUS) as [string, ...string[]]).optional(),
+  status: z.enum(Object.values(CONSTRUCTION_PROJECT_STATUS) as [string, ...string[]]).optional(),
   city: z.string().optional(),
   province: z.string().optional(),
   projectManagerId: z.string().optional(),
@@ -56,35 +56,35 @@ export async function GET(request: NextRequest) {
 
     // Build where conditions
     const whereConditions = [
-      eq(projectSchema.organizationId, orgId),
+      eq(constructionProjectSchema.organizationId, orgId),
     ];
 
     if (status) {
-      whereConditions.push(eq(projectSchema.status, status));
+      whereConditions.push(eq(constructionProjectSchema.status, status));
     }
 
     if (city) {
-      whereConditions.push(ilike(projectSchema.city, `%${city}%`));
+      whereConditions.push(ilike(constructionProjectSchema.city, `%${city}%`));
     }
 
     if (province) {
-      whereConditions.push(ilike(projectSchema.province, `%${province}%`));
+      whereConditions.push(ilike(constructionProjectSchema.province, `%${province}%`));
     }
 
     if (projectManagerId) {
-      whereConditions.push(eq(projectSchema.projectManagerId, projectManagerId));
+      whereConditions.push(eq(constructionProjectSchema.projectManagerId, projectManagerId));
     }
 
     if (isActive !== undefined) {
-      whereConditions.push(eq(projectSchema.isActive, isActive));
+      whereConditions.push(eq(constructionProjectSchema.isActive, isActive));
     }
 
     if (search) {
       whereConditions.push(
         or(
-          ilike(projectSchema.name, `%${search}%`),
-          ilike(projectSchema.description, `%${search}%`),
-          ilike(projectSchema.address, `%${search}%`),
+          ilike(constructionProjectSchema.name, `%${search}%`),
+          ilike(constructionProjectSchema.workItemDescription, `%${search}%`),
+          ilike(constructionProjectSchema.address, `%${search}%`),
         )!,
       );
     }
@@ -96,14 +96,14 @@ export async function GET(request: NextRequest) {
     const [projects, totalCount] = await Promise.all([
       database
         .select()
-        .from(projectSchema)
+        .from(constructionProjectSchema)
         .where(and(...whereConditions))
-        .orderBy(desc(projectSchema.createdAt))
+        .orderBy(desc(constructionProjectSchema.createdAt))
         .limit(limit)
         .offset(offset),
       database
         .select({ count: sql`count(*)` })
-        .from(projectSchema)
+        .from(constructionProjectSchema)
         .where(and(...whereConditions))
         .then((result: any) => result[0]?.count || 0),
     ]);
@@ -197,7 +197,7 @@ export async function POST(request: NextRequest) {
 
     // Create project with ERP audit trail
     const [newProject] = await database
-      .insert(projectSchema)
+      .insert(constructionProjectSchema)
       .values({
         ...validatedData,
         organizationId: orgId,

@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 import { db } from '@/libs/DB';
 import { logger } from '@/libs/Logger';
-import { projectPhotoSchema } from '@/models/Schema';
+import { constructionPhotoSchema } from '@/models/Schema';
 
 // Validation schemas
 const addPhotoSchema = z.object({
@@ -19,8 +19,8 @@ const addPhotoSchema = z.object({
   url: z.string().url('Invalid URL'),
   name: z.string().min(1, 'Name is required'),
   size: z.number().min(0, 'Size must be positive'),
-  width: z.number().min(1, 'Width must be positive'),
-  height: z.number().min(1, 'Height must be positive'),
+  width: z.number().min(0, 'Width must be non-negative'),
+  height: z.number().min(0, 'Height must be non-negative'),
   tags: z.array(z.string()).optional(),
 });
 
@@ -37,12 +37,12 @@ export async function GET(
     // Get database connection
     const database = await db;
 
-    // Get photos for the project
+    // Get photos for the project using Drizzle ORM
     const photos = await database
       .select()
-      .from(projectPhotoSchema)
-      .where(eq(projectPhotoSchema.projectId, projectId))
-      .orderBy(projectPhotoSchema.createdAt);
+      .from(constructionPhotoSchema)
+      .where(eq(constructionPhotoSchema.projectId, projectId))
+      .orderBy(constructionPhotoSchema.createdAt);
 
     // Transform photos to match expected format
     const transformedPhotos = photos.map((photo: any) => ({
@@ -93,12 +93,12 @@ export async function POST(
     const database = await db;
     console.log('✅ Database connected');
 
-    // Add photo to project
+    // Add photo to project using Drizzle ORM
     console.log('💾 Inserting photo to database...');
     const [newPhoto] = await database
-      .insert(projectPhotoSchema)
+      .insert(constructionPhotoSchema)
       .values({
-        projectId,
+        projectId: projectId,
         organizationId: 'org_demo_1', // Use demo org for now
         fileName: validatedData.publicId,
         originalName: validatedData.name,
@@ -107,11 +107,14 @@ export async function POST(
         mimeType: 'image/jpeg', // Default mime type
         tags: JSON.stringify(validatedData.tags || []),
         uploadedById: 'demo-user-1', // Use demo user for now
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        version: 1,
       })
       .returning();
 
     console.log('✅ Photo inserted successfully:', newPhoto);
-    logger.info(`Photo added to project ${projectId}: ${newPhoto.publicId}`);
+    logger.info(`Photo added to project ${projectId}: ${newPhoto.fileName}`);
 
     return NextResponse.json({ photo: newPhoto });
   } catch (error) {

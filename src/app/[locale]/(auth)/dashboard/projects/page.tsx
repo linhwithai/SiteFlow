@@ -1,24 +1,56 @@
 'use client';
 
-import { Building2, Edit, Eye, Filter, MoreHorizontal, Plus, Search, Trash2 } from 'lucide-react';
-import dynamic from 'next/dynamic';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { Building2, Calendar, DollarSign, Edit, Eye, Filter, MapPin, MoreHorizontal, Plus, Search, Trash2, User } from 'lucide-react';
+import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import type { ColumnDef } from '@tanstack/react-table';
 
-import { ProjectStats } from '@/components/ProjectStats';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DataTable } from '@/components/ui/data-table';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ToastContainer, useToast } from '@/components/ui/toast';
-import { PROJECT_STATUS } from '@/types/Enum';
-import type { CreateProjectRequest, Project, ProjectFilters, ProjectListResponse, ProjectStats as ProjectStatsType, UpdateProjectRequest } from '@/types/Project';
+import { CONSTRUCTION_PROJECT_STATUS } from '@/types/Enum';
 
-const ProjectModal = dynamic(() => import('@/components/ProjectModalFixed').then(mod => ({ default: mod.ProjectModalFixed })), {
-  ssr: false,
-  loading: () => null, // Remove loading component to avoid duplicate loading
-});
+// Types
+type Project = {
+  id: number;
+  name: string;
+  description: string | null;
+  address: string | null;
+  city: string | null;
+  province: string | null;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  budget: number | null;
+  projectManagerId: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type ProjectStats = {
+  total: number;
+  active: number;
+  completed: number;
+  onHold: number;
+  cancelled: number;
+  planning: number;
+  totalBudget: number;
+  averageBudget: number;
+};
+
+type ProjectListResponse = {
+  projects: Project[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
 
 type User = {
   id: string;
@@ -27,126 +59,44 @@ type User = {
   role: string;
 };
 
+// Status labels and colors
 const statusLabels = {
-  [PROJECT_STATUS.PLANNING]: 'Lập kế hoạch',
-  [PROJECT_STATUS.ACTIVE]: 'Đang thực hiện',
-  [PROJECT_STATUS.ON_HOLD]: 'Tạm dừng',
-  [PROJECT_STATUS.COMPLETED]: 'Hoàn thành',
-  [PROJECT_STATUS.CANCELLED]: 'Hủy bỏ',
+  [CONSTRUCTION_PROJECT_STATUS.PLANNING]: 'Lập kế hoạch',
+  [CONSTRUCTION_PROJECT_STATUS.ACTIVE]: 'Đang thi công',
+  [CONSTRUCTION_PROJECT_STATUS.ON_HOLD]: 'Tạm dừng',
+  [CONSTRUCTION_PROJECT_STATUS.COMPLETED]: 'Hoàn thành',
+  [CONSTRUCTION_PROJECT_STATUS.CANCELLED]: 'Hủy bỏ',
 };
 
 const statusColors = {
-  [PROJECT_STATUS.PLANNING]: 'bg-blue-100 text-blue-800',
-  [PROJECT_STATUS.ACTIVE]: 'bg-green-100 text-green-800',
-  [PROJECT_STATUS.ON_HOLD]: 'bg-yellow-100 text-yellow-800',
-  [PROJECT_STATUS.COMPLETED]: 'bg-gray-100 text-gray-800',
-  [PROJECT_STATUS.CANCELLED]: 'bg-red-100 text-red-800',
+  [CONSTRUCTION_PROJECT_STATUS.PLANNING]: 'bg-blue-100 text-blue-800',
+  [CONSTRUCTION_PROJECT_STATUS.ACTIVE]: 'bg-green-100 text-green-800',
+  [CONSTRUCTION_PROJECT_STATUS.ON_HOLD]: 'bg-yellow-100 text-yellow-800',
+  [CONSTRUCTION_PROJECT_STATUS.COMPLETED]: 'bg-gray-100 text-gray-800',
+  [CONSTRUCTION_PROJECT_STATUS.CANCELLED]: 'bg-red-100 text-red-800',
 };
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
-  const [stats, setStats] = useState<ProjectStatsType | null>(null);
+  const [stats, setStats] = useState<ProjectStats | null>(null);
   const [users, setUsers] = useState<User[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
-  const [filters, setFilters] = useState<ProjectFilters>({});
-  const [searchInput, setSearchInput] = useState('');
-  const [isSearching, setIsSearching] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isStatsLoading, setIsStatsLoading] = useState(true);
-  const [isFiltering, setIsFiltering] = useState(false);
-  const [editingProject, setEditingProject] = useState<Project | null>(null);
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const [isCreatingProject, setIsCreatingProject] = useState(false);
-  const [isUploadingPhotos, setIsUploadingPhotos] = useState(false);
-  const cacheRef = useRef<Map<string, ProjectListResponse>>(new Map());
-  const [pendingPhotos, setPendingPhotos] = useState<any[]>([]);
-
-  // Toast system
-  const { toasts, removeToast, success, error: showError } = useToast();
-
-  // Debug function to handle photos ready
-  const handlePhotosReady = (photos: any[]) => {
-    console.log('📥 Received photos from modal:', photos);
-    setPendingPhotos(photos);
-  };
-
-  // Handle upload state from modal
-  const handleUploadStateChange = (isUploading: boolean) => {
-    setIsUploadingPhotos(isUploading);
-  };
+  const [searchInput, setSearchInput] = useState('');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const limit = 12;
 
-  // Generate cache key for filters
-  const getCacheKey = (filters: ProjectFilters, page: number) => {
-    return JSON.stringify({ ...filters, page, limit });
-  };
-
-  // Clear cache when data changes
-  const clearCache = () => {
-    cacheRef.current.clear();
-    console.log('🗑️ Cache cleared');
-  };
-
-  // Cache management with size limit
-  const addToCache = (key: string, data: ProjectListResponse) => {
-    const cache = cacheRef.current;
-
-    // Limit cache size to 50 entries
-    if (cache.size >= 50) {
-      const firstKey = cache.keys().next().value;
-      if (firstKey) {
-        cache.delete(firstKey);
-      }
-    }
-
-    cache.set(key, data);
-    console.log(`💾 Cached data for key: ${key} (Cache size: ${cache.size})`);
-  };
-
-  // Fetch users
-  const fetchUsers = async () => {
+  // Fetch functions for external use (like delete)
+  const fetchProjects = async () => {
     try {
-      const response = await fetch('/api/users');
-      if (response.ok) {
-        const data = await response.json();
-        setUsers(data.users);
-      }
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
-  // Fetch projects with caching
-  const fetchProjects = useCallback(async (showLoading = true) => {
-    try {
-      if (showLoading) {
-        setIsLoading(true);
-      }
-
-      // Check cache first
-      const cacheKey = getCacheKey(filters, page);
-      const cachedData = cacheRef.current.get(cacheKey);
-
-      if (cachedData) {
-        console.log('🚀 Cache HIT for:', cacheKey);
-        setProjects(cachedData.projects);
-        setTotal(cachedData.pagination.total);
-        if (showLoading) {
-          setIsLoading(false);
-        }
-        return;
-      }
-
-      // Fetch from API if not cached
-      console.log('📡 Cache MISS - Fetching from API for:', cacheKey);
+      setIsLoading(true);
       const searchParams = new URLSearchParams({
         page: page.toString(),
         limit: limit.toString(),
-        ...Object.fromEntries(
-          Object.entries(filters).filter(([_, value]) => value !== undefined),
-        ),
+        ...(statusFilter !== 'all' && { status: statusFilter }),
+        ...(searchInput && { search: searchInput }),
       });
 
       const response = await fetch(`/api/projects?${searchParams}`);
@@ -155,180 +105,38 @@ export default function ProjectsPage() {
       }
 
       const data: ProjectListResponse = await response.json();
-
-      // Cache the result
-      addToCache(cacheKey, data);
-
       setProjects(data.projects);
       setTotal(data.pagination.total);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {
-      if (showLoading) {
-        setIsLoading(false);
-      }
+      setIsLoading(false);
     }
-  }, [page, filters, limit]);
+  };
 
-  // Fetch project stats
   const fetchStats = async () => {
     try {
-      setIsStatsLoading(true);
       const response = await fetch('/api/projects/stats');
       if (!response.ok) {
         throw new Error('Failed to fetch project stats');
       }
-
-      const data: ProjectStatsType = await response.json();
+      const data: ProjectStats = await response.json();
       setStats(data);
     } catch (error) {
       console.error('Error fetching project stats:', error);
-    } finally {
-      setIsStatsLoading(false);
     }
   };
 
-  // Handle page change
-  const handlePageChange = (newPage: number) => {
-    setPage(newPage);
-  };
-
-  // Handle filters change
-  const handleFiltersChange = (newFilters: ProjectFilters) => {
-    setFilters(newFilters);
-    setPage(1);
-  };
-
-  // Debounced search effect
-  useEffect(() => {
-    if (searchInput !== (filters.search || '')) {
-      setIsSearching(true);
-    }
-
-    const timer = setTimeout(() => {
-      setFilters(prev => ({ ...prev, search: searchInput || undefined }));
-      setPage(1);
-      setIsSearching(false);
-    }, 500); // 500ms delay
-
-    return () => clearTimeout(timer);
-  }, [searchInput, filters.search]);
-
-  // Function to save photos to database after project creation
-  const savePhotosToDatabase = async (projectId: number, photos: any[]) => {
-    console.log('💾 Saving photos to database for project:', projectId, photos);
-
-    for (const photo of photos) {
-      try {
-        const response = await fetch(`/api/projects/${projectId}/photos`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            publicId: photo.publicId,
-            url: photo.url,
-            name: photo.name,
-            size: photo.size,
-            width: 800, // Default width
-            height: 600, // Default height
-            tags: photo.tags || [],
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to save photo to database');
-        }
-
-        console.log('✅ Photo saved to database:', photo.name);
-      } catch (error) {
-        console.error('❌ Error saving photo to database:', photo.name, error);
-      }
-    }
-  };
-
-  // Handle create project
-  const handleCreateProject = async (data: CreateProjectRequest) => {
-    try {
-      setIsCreatingProject(true);
-
-      const response = await fetch('/api/projects', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create project');
-      }
-
-      const newProject = await response.json();
-      console.log('✅ Project created successfully:', newProject);
-
-      // Save photos to database if there are any
-      console.log('🔍 Checking pending photos:', pendingPhotos.length, pendingPhotos);
-      if (pendingPhotos.length > 0) {
-        console.log('💾 Saving pending photos to database...');
-        await savePhotosToDatabase(newProject.id, pendingPhotos);
-        setPendingPhotos([]); // Clear pending photos
-      } else {
-        console.log('ℹ️ No pending photos to save');
-      }
-
-      // Clear cache and refresh projects list and stats
-      console.log('🔄 Clearing cache and refreshing data...');
-      clearCache();
-      console.log('📊 Current projects before refresh:', projects.length);
-      await fetchProjects();
-      console.log('📊 Projects after refresh:', projects.length);
-      await fetchStats();
-      console.log('✅ Data refresh completed');
-
-      // Close modal only after everything is done
-      setIsCreateModalOpen(false);
-
-      // Show success toast
-      success('Tạo dự án thành công!', `Dự án "${newProject.name}" đã được tạo thành công.`);
-    } catch (error) {
-      console.error('Error creating project:', error);
-      showError('Lỗi tạo dự án', 'Không thể tạo dự án. Vui lòng thử lại.');
-      throw error;
-    } finally {
-      setIsCreatingProject(false);
-    }
-  };
-
-  // Handle update project
-  const handleUpdateProject = async (projectId: string, data: UpdateProjectRequest) => {
-    try {
-      const response = await fetch(`/api/projects/${projectId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to update project');
-      }
-
-      // Clear cache and refresh projects list
-      clearCache();
-      await fetchProjects();
-      setEditingProject(null);
-    } catch (error) {
-      console.error('Error updating project:', error);
-      throw error;
-    }
+  // Get project manager name
+  const getProjectManagerName = (projectManagerId: string | null | undefined) => {
+    if (!projectManagerId) return 'Chưa phân công';
+    const user = users.find(u => u.id === projectManagerId);
+    return user ? user.name : 'Không xác định';
   };
 
   // Handle delete project
   const handleDeleteProject = async (project: Project) => {
-    // eslint-disable-next-line no-alert
-    if (window.confirm(`Bạn có chắc chắn muốn xóa dự án "${project.name}"?`)) {
+    if (window.confirm(`Bạn có chắc chắn muốn xóa công trình "${project.name}"?`)) {
       try {
         const response = await fetch(`/api/projects/${project.id}`, {
           method: 'DELETE',
@@ -338,78 +146,285 @@ export default function ProjectsPage() {
           throw new Error('Failed to delete project');
         }
 
-        // Clear cache and refresh projects list and stats when deleting
-        clearCache();
-        await fetchProjects();
-        await fetchStats();
+        await Promise.all([
+          fetchProjects(),
+          fetchStats()
+        ]);
       } catch (error) {
         console.error('Error deleting project:', error);
-        // eslint-disable-next-line no-alert
-        window.alert('Có lỗi xảy ra khi xóa dự án');
+        window.alert('Có lỗi xảy ra khi xóa công trình');
       }
     }
   };
 
-  // Get project manager name
-  const getProjectManagerName = (projectManagerId: string | null | undefined) => {
-    if (!projectManagerId) {
-      return 'Chưa phân công';
-    }
-    const user = users.find(u => u.id === projectManagerId);
-    return user ? `${user.name} (${user.role})` : 'Không xác định';
-  };
+  // Define columns for DataTable
+  const columns: ColumnDef<Project>[] = [
+    {
+      accessorKey: 'name',
+      header: 'Công trình',
+      cell: ({ row }) => {
+        const project = row.original;
+        return (
+          <div className="flex items-center space-x-3">
+            {/* Project Thumbnail */}
+            <div className="flex-shrink-0">
+              <div className="flex size-12 items-center justify-center rounded-lg bg-blue-100">
+                <Building2 className="size-6 text-blue-600" />
+              </div>
+            </div>
+            
+            {/* Project Info */}
+            <div className="min-w-0 flex-1">
+              <Link
+                href={`/dashboard/projects/${project.id}`}
+                className="text-sm font-medium text-gray-900 hover:text-blue-600 hover:underline"
+              >
+                {project.name}
+              </Link>
+              <p className="text-sm text-gray-500 truncate">
+                {project.description || 'Không có mô tả'}
+              </p>
+              <div className="flex items-center text-xs text-gray-400 mt-1">
+                <MapPin className="size-3 mr-1" />
+                {project.city && project.province 
+                  ? `${project.city}, ${project.province}` 
+                  : 'Chưa xác định vị trí'
+                }
+              </div>
+            </div>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'projectManagerId',
+      header: 'Quản lý',
+      cell: ({ row }) => {
+        const projectManagerId = row.getValue('projectManagerId') as string | null;
+        return (
+          <div className="flex items-center text-sm">
+            <User className="size-4 mr-2 text-gray-400" />
+            {getProjectManagerName(projectManagerId)}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'status',
+      header: 'Trạng thái',
+      cell: ({ row }) => {
+        const status = row.getValue('status') as string;
+        const label = statusLabels[status as keyof typeof statusLabels] || status;
+        const colorClass = statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800';
+        return (
+          <Badge className={colorClass}>
+            {label}
+          </Badge>
+        );
+      },
+    },
+    {
+      accessorKey: 'budget',
+      header: 'Ngân sách',
+      cell: ({ row }) => {
+        const budget = row.getValue('budget') as number | null;
+        if (!budget) return <span className="text-sm text-gray-500">Chưa xác định</span>;
+        return (
+          <div className="flex items-center text-sm">
+            <DollarSign className="size-4 mr-1 text-green-600" />
+            <span className="font-medium">
+              {new Intl.NumberFormat('vi-VN', {
+                style: 'currency',
+                currency: 'VND',
+                notation: 'compact',
+              }).format(budget)}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: 'startDate',
+      header: 'Ngày bắt đầu',
+      cell: ({ row }) => {
+        const date = row.getValue('startDate') as string | null;
+        if (!date) return <span className="text-sm text-gray-500">Chưa xác định</span>;
+        return (
+          <div className="flex items-center text-sm">
+            <Calendar className="size-4 mr-2 text-gray-400" />
+            {new Date(date).toLocaleDateString('vi-VN')}
+          </div>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Thao tác',
+      cell: ({ row }) => {
+        const project = row.original;
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm">
+                <MoreHorizontal className="size-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem asChild>
+                <Link href={`/dashboard/projects/${project.id}`}>
+                  <Eye className="mr-2 size-4" />
+                  Xem chi tiết
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href={`/dashboard/projects/${project.id}/edit`}>
+                  <Edit className="mr-2 size-4" />
+                  Chỉnh sửa
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => handleDeleteProject(project)}
+                className="text-red-600"
+              >
+                <Trash2 className="mr-2 size-4" />
+                Xóa
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
 
-  // Load data on mount
+  // Single useEffect with smart loading logic
   useEffect(() => {
-    fetchUsers();
-    fetchProjects();
-    fetchStats();
-  }, []);
+    let isMounted = true;
+    
+    const loadData = async () => {
+      // Load static data only if not already loaded
+      if (users.length === 0 && stats === null) {
+        const [usersData, statsData] = await Promise.all([
+          fetch('/api/users').then(res => res.json()),
+          fetch('/api/projects/stats').then(res => res.json())
+        ]);
+        
+        if (isMounted) {
+          setUsers(usersData.users || []);
+          setStats(statsData);
+        }
+      }
+      
+      // Always load projects
+      if (isMounted) {
+        setIsLoading(true);
+        try {
+          const searchParams = new URLSearchParams({
+            page: page.toString(),
+            limit: limit.toString(),
+            ...(statusFilter !== 'all' && { status: statusFilter }),
+            ...(searchInput && { search: searchInput }),
+          });
 
-  // Only fetch projects when filters change (without loading spinner)
-  useEffect(() => {
-    // Skip if this is the initial render (filters are empty)
-    if (Object.keys(filters).length === 0) {
-      return;
-    }
+          const response = await fetch(`/api/projects?${searchParams}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch projects');
+          }
 
-    if (filters.search || filters.status) {
-      setIsFiltering(true);
-      fetchProjects(false).finally(() => {
-        setIsFiltering(false);
-      });
-    }
-  }, [filters.search, filters.status]); // Only trigger when search or status changes
+          const data = await response.json();
+          setProjects(data.projects);
+          setTotal(data.pagination.total);
+        } catch (error) {
+          console.error('Error fetching projects:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+    
+    loadData();
+    
+    return () => {
+      isMounted = false;
+    };
+  }, [page, searchInput, statusFilter, users.length, stats]);
 
   return (
     <div className="space-y-6">
-      {/* Toast Container */}
-      <ToastContainer toasts={toasts} onRemove={removeToast} />
       {/* Header Section */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center">
-          <h1 className="text-2xl font-bold text-gray-900">
-            Quản lý dự án
-          </h1>
-          <div className="mx-3 h-6 w-px bg-gray-300" />
-          <p className="text-sm text-gray-600">
-            Quản lý và theo dõi tất cả các dự án xây dựng
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Quản lý công trình</h1>
+          <p className="text-muted-foreground">
+            Quản lý và theo dõi tất cả các công trình xây dựng
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-blue-600 hover:bg-blue-700"
-            disabled={isCreatingProject || isUploadingPhotos}
-          >
+        <Button asChild>
+          <Link href="/dashboard/projects/new">
             <Plus className="mr-2 size-4" />
-            {isCreatingProject ? 'Đang tạo...' : isUploadingPhotos ? 'Đang upload ảnh...' : 'Tạo dự án mới'}
-          </Button>
-        </div>
+            Tạo công trình mới
+          </Link>
+        </Button>
       </div>
 
       {/* Project Statistics */}
-      {!isLoading && !isStatsLoading && stats && <ProjectStats stats={stats} isLoading={false} />}
+      {stats && (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Tổng công trình</p>
+                  <p className="text-2xl font-bold">{stats.total}</p>
+                </div>
+                <Building2 className="size-8 text-blue-500" />
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Đang thi công</p>
+                  <p className="text-2xl font-bold">{stats.active}</p>
+                </div>
+                <div className="size-8 rounded-full bg-green-100 flex items-center justify-center">
+                  <div className="size-4 rounded-full bg-green-500"></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Hoàn thành</p>
+                  <p className="text-2xl font-bold">{stats.completed}</p>
+                </div>
+                <div className="size-8 rounded-full bg-gray-100 flex items-center justify-center">
+                  <div className="size-4 rounded-full bg-gray-500"></div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Tổng ngân sách</p>
+                  <p className="text-lg font-bold">
+                    {new Intl.NumberFormat('vi-VN', {
+                      style: 'currency',
+                      currency: 'VND',
+                      notation: 'compact',
+                    }).format(stats.totalBudget)}
+                  </p>
+                </div>
+                <DollarSign className="size-8 text-green-500" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Filters and Search */}
       <Card>
@@ -417,24 +432,15 @@ export default function ProjectsPage() {
           <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
             <div className="flex flex-1 gap-2">
               <div className="relative max-w-sm flex-1">
-                {isSearching || isFiltering
-                  ? (
-                      <div className="absolute left-3 top-2.5 size-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
-                    )
-                  : (
                       <Search className="absolute left-3 top-2.5 size-4 text-gray-400" />
-                    )}
                 <Input
-                  placeholder="Tìm kiếm dự án..."
+                  placeholder="Tìm kiếm công trình..."
                   className="pl-10"
                   value={searchInput}
-                  onChange={e => setSearchInput(e.target.value)}
+                  onChange={(e) => setSearchInput(e.target.value)}
                 />
               </div>
-              <Select
-                value={filters.status || 'all'}
-                onValueChange={value => handleFiltersChange({ ...filters, status: value === 'all' ? undefined : value as any })}
-              >
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
                 <SelectTrigger className="w-48">
                   <SelectValue placeholder="Tất cả trạng thái" />
                 </SelectTrigger>
@@ -460,130 +466,23 @@ export default function ProjectsPage() {
 
       {/* Projects Table */}
       <Card>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="border-b border-gray-200 bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Dự án
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Quản lý
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Trạng thái
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Tiến độ
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Ngày bắt đầu
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Thao tác
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {isLoading
-                  ? (
-                      <tr>
-                        <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                          <div className="flex items-center justify-center">
-                            <div className="size-6 animate-spin rounded-full border-b-2 border-blue-600"></div>
-                            <span className="ml-2">Đang tải...</span>
-                          </div>
-                        </td>
-                      </tr>
-                    )
-                  : projects.length === 0
-                    ? (
-                        <tr>
-                          <td colSpan={6} className="px-6 py-12 text-center text-gray-500">
-                            Không có dự án nào
-                          </td>
-                        </tr>
-                      )
-                    : (
-                        projects.map(project => (
-                          <tr key={project.id} className="hover:bg-gray-50">
-                            <td className="whitespace-nowrap px-6 py-4">
-                              <div className="flex items-center">
-                                <div className="mr-3 flex size-10 items-center justify-center rounded-lg bg-blue-100">
-                                  <Building2 className="size-5 text-blue-600" />
-                                </div>
-                                <div>
-                                  <div className="text-sm font-medium text-gray-900">
-                                    <button
-                                      onClick={() => window.location.href = `/dashboard/projects/${project.id}`}
-                                      className="hover:text-blue-600 hover:underline"
-                                    >
-                                      {project.name}
-                                    </button>
-                                  </div>
-                                  <div className="text-sm text-gray-500">{project.description}</div>
+        <CardHeader>
+          <CardTitle>Danh sách công trình</CardTitle>
+          <CardDescription>
+            Hiển thị {projects.length} trong tổng số {total} công trình
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <div className="flex items-center space-x-2">
+                <div className="size-4 animate-spin rounded-full border-b-2 border-blue-600"></div>
+                <span className="text-sm text-gray-600">Đang tải dữ liệu...</span>
                                 </div>
                               </div>
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                              {getProjectManagerName(project.projectManagerId)}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">
-                              <Badge className={statusColors[project.status]}>
-                                {statusLabels[project.status]}
-                              </Badge>
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4">
-                              <div className="flex items-center">
-                                <div className="mr-2 h-2 w-16 rounded-full bg-gray-200">
-                                  <div
-                                    className="h-2 rounded-full bg-blue-600"
-                                    style={{ width: `${(project as any).progress || 0}%` }}
-                                  >
-                                  </div>
-                                </div>
-                                <span className="text-sm text-gray-600">
-                                  {(project as any).progress || 0}
-                                  %
-                                </span>
-                              </div>
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-900">
-                              {project.startDate ? new Date(project.startDate).toLocaleDateString('vi-VN') : '-'}
-                            </td>
-                            <td className="whitespace-nowrap px-6 py-4 text-sm font-medium">
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button variant="ghost" size="sm">
-                                    <MoreHorizontal className="size-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end">
-                                  <DropdownMenuItem onClick={() => setEditingProject(project)}>
-                                    <Edit className="mr-2 size-4" />
-                                    Chỉnh sửa
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem onClick={() => window.location.href = `/dashboard/projects/${project.id}`}>
-                                    <Eye className="mr-2 size-4" />
-                                    Xem chi tiết
-                                  </DropdownMenuItem>
-                                  <DropdownMenuItem
-                                    onClick={() => handleDeleteProject(project)}
-                                    className="text-red-600"
-                                  >
-                                    <Trash2 className="mr-2 size-4" />
-                                    Xóa
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </td>
-                          </tr>
-                        ))
-                      )}
-              </tbody>
-            </table>
-          </div>
+          ) : (
+            <DataTable columns={columns} data={projects} />
+          )}
         </CardContent>
       </Card>
 
@@ -591,25 +490,13 @@ export default function ProjectsPage() {
       {total > limit && (
         <div className="flex items-center justify-between">
           <div className="text-sm text-gray-700">
-            Hiển thị
-            {' '}
-            {((page - 1) * limit) + 1}
-            {' '}
-            đến
-            {' '}
-            {Math.min(page * limit, total)}
-            {' '}
-            trong tổng số
-            {' '}
-            {total}
-            {' '}
-            dự án
+            Hiển thị {((page - 1) * limit) + 1} đến {Math.min(page * limit, total)} trong tổng số {total} công trình
           </div>
           <div className="flex gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(page - 1)}
+              onClick={() => setPage(page - 1)}
               disabled={page === 1}
             >
               Trước
@@ -617,7 +504,7 @@ export default function ProjectsPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => handlePageChange(page + 1)}
+              onClick={() => setPage(page + 1)}
               disabled={page * limit >= total}
             >
               Sau
@@ -625,33 +512,6 @@ export default function ProjectsPage() {
           </div>
         </div>
       )}
-
-      {/* Create Project Modal */}
-      <ProjectModal
-        key={`create-${isCreateModalOpen ? 'open' : 'closed'}`}
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onSave={handleCreateProject as (data: CreateProjectRequest | UpdateProjectRequest) => Promise<void>}
-        users={users}
-        project={null}
-        onPhotosReady={handlePhotosReady}
-        onUploadStateChange={handleUploadStateChange}
-        isLoading={isCreatingProject}
-      />
-
-      {/* Edit Project Modal */}
-      <ProjectModal
-        key={`edit-${editingProject?.id || 'none'}`}
-        isOpen={!!editingProject}
-        onClose={() => setEditingProject(null)}
-        onSave={async (data) => {
-          if (editingProject) {
-            await handleUpdateProject(editingProject.id, data as UpdateProjectRequest);
-          }
-        }}
-        users={users}
-        project={editingProject}
-      />
     </div>
   );
 }

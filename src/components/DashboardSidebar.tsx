@@ -1,109 +1,211 @@
 'use client';
 
-import { Building2, Calendar, ChevronDown, ClipboardList, HelpCircle, Home, Menu, MessageCircle, PlusIcon, Settings, Users, X, Camera, PieChart, MapPin, Wrench } from 'lucide-react';
+import { 
+  Building2, 
+  Calendar, 
+  ChevronDown, 
+  HelpCircle, 
+  Home, 
+  Menu, 
+  MessageCircle, 
+  PlusIcon, 
+  Settings, 
+  Users, 
+  X, 
+  Camera, 
+  MapPin, 
+  Wrench,
+  CheckSquare,
+  User,
+  BarChart3,
+  FileText,
+  Bell
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Separator } from '@/components/ui/separator';
+import { Badge } from '@/components/ui/badge';
 import { cn } from '@/utils/Helpers';
 
-// Main navigation - Core features
-const mainNavigation = [
+// Core Management - Essential daily operations
+const coreNavigation = [
   {
-    name: 'Dashboard',
+    name: 'Tổng quan',
     href: '/dashboard',
     icon: Home,
-    description: 'Tổng quan hệ thống',
+    description: 'Bảng điều khiển chính',
+    priority: 'high',
   },
   {
-    name: 'Dự án',
+    name: 'Dự án xây dựng',
     href: '/dashboard/projects',
     icon: Building2,
-    description: 'Quản lý dự án xây dựng',
+    description: 'Quản lý công trình xây dựng',
+    priority: 'high',
+    badge: '12', // Active projects count
   },
   {
-    name: 'Nhật ký',
-    href: '/dashboard/daily-logs',
-    icon: ClipboardList,
-    description: 'Nhật ký công trình hàng ngày',
+    name: 'Tất cả hạng mục',
+    href: '/dashboard/work-items',
+    icon: CheckSquare,
+    description: 'Xem tất cả hạng mục từ các dự án',
+    priority: 'medium',
+    badge: '5', // Pending work items count
   },
+];
+
+// Media & Documentation
+const mediaNavigation = [
   {
-    name: 'Thư viện ảnh',
+    name: 'Thư viện tài liệu',
     href: '/dashboard/photos',
     icon: Camera,
-    description: 'Quản lý ảnh và tài liệu',
+    description: 'Ảnh công trình và tài liệu',
+    priority: 'medium',
+  },
+  {
+    name: 'Báo cáo tiến độ',
+    href: '/dashboard/reports',
+    icon: FileText,
+    description: 'Báo cáo thi công và thống kê',
+    priority: 'medium',
   },
 ];
 
-// Secondary navigation - Analysis & Planning
-const secondaryNavigation = [
+// Planning & Analytics
+const planningNavigation = [
   {
-    name: 'Báo cáo',
-    href: '/dashboard/reports',
-    icon: PieChart,
-    description: 'Báo cáo và thống kê',
-  },
-  {
-    name: 'Lịch',
+    name: 'Lịch thi công',
     href: '/dashboard/calendar',
     icon: Calendar,
-    description: 'Lịch làm việc và sự kiện',
+    description: 'Lịch trình thi công và sự kiện',
+    priority: 'low',
   },
   {
-    name: 'Bản đồ',
+    name: 'Vị trí công trình',
     href: '/dashboard/map',
     icon: MapPin,
-    description: 'Vị trí dự án trên bản đồ',
+    description: 'Bản đồ vị trí các công trình',
+    priority: 'low',
+  },
+  {
+    name: 'Phân tích tiến độ',
+    href: '/dashboard/analytics',
+    icon: BarChart3,
+    description: 'Thống kê và phân tích tiến độ',
+    priority: 'low',
   },
 ];
 
-// Organization management
-const organizationMenu = [
+// Settings & Configuration - All user, organization, and system settings
+const settingsMenu = [
+  // Personal Settings
   {
-    name: 'Thông tin tổ chức',
+    name: 'Hồ sơ cá nhân',
+    href: '/dashboard/user-profile',
+    icon: User,
+    description: 'Thông tin cá nhân',
+    category: 'personal',
+  },
+  {
+    name: 'Thông báo',
+    href: '/dashboard/notifications',
+    icon: Bell,
+    description: 'Thông báo hệ thống',
+    category: 'personal',
+    badge: '3', // Unread notifications
+  },
+  // Organization Settings
+  {
+    name: 'Thông tin công ty',
     href: '/dashboard/organization',
     icon: Building2,
+    description: 'Chi tiết công ty xây dựng',
+    category: 'organization',
   },
   {
-    name: 'Thành viên',
+    name: 'Nhân sự',
     href: '/dashboard/organization-profile/organization-members',
     icon: Users,
+    description: 'Quản lý nhân sự',
+    category: 'organization',
   },
   {
-    name: 'Cài đặt tổ chức',
+    name: 'Cài đặt công ty',
     href: '/dashboard/organization-profile',
     icon: Wrench,
+    description: 'Cấu hình công ty',
+    category: 'organization',
   },
-];
-
-// System settings
-const systemMenu = [
+  // System Settings
   {
     name: 'Cài đặt hệ thống',
     href: '/dashboard/settings',
     icon: Settings,
+    description: 'Cấu hình hệ thống',
+    category: 'system',
+  },
+  {
+    name: 'API & Webhooks',
+    href: '/dashboard/api-settings',
+    icon: Wrench,
+    description: 'Quản lý API và webhooks',
+    category: 'system',
   },
   {
     name: 'Phản hồi',
     href: '/dashboard/feedback',
     icon: MessageCircle,
+    description: 'Gửi phản hồi',
+    category: 'system',
   },
   {
     name: 'Trợ giúp',
     href: '/dashboard/help',
     icon: HelpCircle,
+    description: 'Hướng dẫn sử dụng',
+    category: 'system',
   },
 ];
 
 export function DashboardSidebar() {
   const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(true); // Mặc định mở
-  const [isOrganizationOpen, setIsOrganizationOpen] = useState(false);
-  const [isSystemOpen, setIsSystemOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const toggle = () => setIsOpen(!isOpen);
+
+  // Navigation item component with badge support
+  const NavigationItem = ({ item, isActive }: { item: any; isActive: boolean }) => (
+    <Link href={item.href}>
+      <Button
+        variant={isActive ? 'default' : 'ghost'}
+        className={cn(
+          'w-full justify-start text-left h-12 relative',
+          isActive
+            ? 'bg-blue-600 text-white'
+            : 'text-gray-300 hover:text-white hover:bg-gray-800',
+        )}
+      >
+        <item.icon className="mr-3 size-5" />
+        <div className="flex flex-col items-start flex-1">
+          <div className="flex items-center gap-2">
+            <span className="font-medium">{item.name}</span>
+            {item.badge && (
+              <Badge variant="secondary" className="text-xs bg-blue-500 text-white">
+                {item.badge}
+              </Badge>
+            )}
+          </div>
+          <span className="text-xs text-gray-400">{item.description}</span>
+        </div>
+      </Button>
+    </Link>
+  );
 
   return (
     <>
@@ -123,7 +225,7 @@ export function DashboardSidebar() {
 
       {/* Sidebar - Always Visible */}
       <div className={cn(
-        'fixed inset-y-0 left-0 z-40 w-64 bg-gray-900 border-r border-gray-700 transition-transform duration-300 ease-in-out',
+        'fixed inset-y-0 left-0 z-40 w-72 bg-gray-900 border-r border-gray-700 transition-transform duration-300 ease-in-out',
         isOpen ? 'translate-x-0' : '-translate-x-full',
       )}
       >
@@ -144,119 +246,62 @@ export function DashboardSidebar() {
           {/* Content */}
           <div className="flex flex-1 flex-col overflow-y-auto pb-4 pt-5">
             <nav className="mt-5 flex-1 space-y-1 px-2">
-              {/* Main Navigation - Core Features */}
+              {/* Core Management - Essential daily operations */}
               <div className="space-y-1">
                 <div className="px-3 py-2">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    Chức năng chính
+                    Quản lý thi công
                   </h3>
                 </div>
-                {mainNavigation.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link key={item.name} href={item.href}>
-                      <Button
-                        variant={isActive ? 'default' : 'ghost'}
-                        className={cn(
-                          'w-full justify-start text-left h-12',
-                          isActive
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-300 hover:text-white hover:bg-gray-800',
-                        )}
-                      >
-                        <item.icon className="mr-3 size-5" />
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{item.name}</span>
-                          <span className="text-xs text-gray-400">{item.description}</span>
-                        </div>
-                      </Button>
-                    </Link>
-                  );
-                })}
+                {coreNavigation.map((item) => (
+                  <NavigationItem 
+                    key={item.name} 
+                    item={item} 
+                    isActive={pathname === item.href} 
+                  />
+                ))}
               </div>
 
-              {/* Divider */}
-              <div className="my-4 border-t border-gray-700" />
+              <Separator className="my-4 bg-gray-700" />
 
-              {/* Secondary Navigation - Analysis & Planning */}
+              {/* Media & Documentation */}
               <div className="space-y-1">
                 <div className="px-3 py-2">
                   <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                    Phân tích & Lập kế hoạch
+                    Tài liệu & Hình ảnh
                   </h3>
                 </div>
-                {secondaryNavigation.map((item) => {
-                  const isActive = pathname === item.href;
-                  return (
-                    <Link key={item.name} href={item.href}>
-                      <Button
-                        variant={isActive ? 'default' : 'ghost'}
-                        className={cn(
-                          'w-full justify-start text-left h-12',
-                          isActive
-                            ? 'bg-blue-600 text-white'
-                            : 'text-gray-300 hover:text-white hover:bg-gray-800',
-                        )}
-                      >
-                        <item.icon className="mr-3 size-5" />
-                        <div className="flex flex-col items-start">
-                          <span className="font-medium">{item.name}</span>
-                          <span className="text-xs text-gray-400">{item.description}</span>
-                        </div>
-                      </Button>
-                    </Link>
-                  );
-                })}
+                {mediaNavigation.map((item) => (
+                  <NavigationItem 
+                    key={item.name} 
+                    item={item} 
+                    isActive={pathname === item.href} 
+                  />
+                ))}
               </div>
 
-              {/* Divider */}
-              <div className="my-4 border-t border-gray-700" />
+              <Separator className="my-4 bg-gray-700" />
 
-              {/* Organization Management */}
-              <Collapsible open={isOrganizationOpen} onOpenChange={setIsOrganizationOpen}>
-                <CollapsibleTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-between text-gray-300 hover:bg-gray-800 hover:text-white"
-                  >
-                    <div className="flex items-center">
-                      <Building2 className="mr-3 size-5" />
-                      <span className="text-sm font-medium">Tổ chức</span>
-                    </div>
-                    <ChevronDown
-                      className={cn(
-                        'size-4 transition-transform',
-                        isOrganizationOpen && 'rotate-180',
-                      )}
-                    />
-                  </Button>
-                </CollapsibleTrigger>
+              {/* Planning & Analytics */}
+              <div className="space-y-1">
+                <div className="px-3 py-2">
+                  <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                    Lập kế hoạch & Thống kê
+                  </h3>
+                </div>
+                {planningNavigation.map((item) => (
+                  <NavigationItem 
+                    key={item.name} 
+                    item={item} 
+                    isActive={pathname === item.href} 
+                  />
+                ))}
+              </div>
 
-                <CollapsibleContent className="ml-4 space-y-1">
-                  {organizationMenu.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <Link key={item.name} href={item.href}>
-                        <Button
-                          variant={isActive ? 'default' : 'ghost'}
-                          className={cn(
-                            'w-full justify-start text-left text-sm',
-                            isActive
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-300 hover:text-white hover:bg-gray-800',
-                          )}
-                        >
-                          <item.icon className="mr-3 size-4" />
-                          {item.name}
-                        </Button>
-                      </Link>
-                    );
-                  })}
-                </CollapsibleContent>
-              </Collapsible>
+              <Separator className="my-4 bg-gray-700" />
 
-              {/* System Settings */}
-              <Collapsible open={isSystemOpen} onOpenChange={setIsSystemOpen}>
+              {/* Settings & Configuration - Unified menu for all settings */}
+              <Collapsible open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
                 <CollapsibleTrigger asChild>
                   <Button
                     variant="ghost"
@@ -264,37 +309,123 @@ export function DashboardSidebar() {
                   >
                     <div className="flex items-center">
                       <Settings className="mr-3 size-5" />
-                      <span className="text-sm font-medium">Hệ thống</span>
+                      <span className="text-sm font-medium">Cài đặt & Cấu hình</span>
                     </div>
                     <ChevronDown
                       className={cn(
                         'size-4 transition-transform',
-                        isSystemOpen && 'rotate-180',
+                        isSettingsOpen && 'rotate-180',
                       )}
                     />
                   </Button>
                 </CollapsibleTrigger>
 
                 <CollapsibleContent className="ml-4 space-y-1">
-                  {systemMenu.map((item) => {
-                    const isActive = pathname === item.href;
-                    return (
-                      <Link key={item.name} href={item.href}>
-                        <Button
-                          variant={isActive ? 'default' : 'ghost'}
-                          className={cn(
-                            'w-full justify-start text-left text-sm',
-                            isActive
-                              ? 'bg-blue-600 text-white'
-                              : 'text-gray-300 hover:text-white hover:bg-gray-800',
-                          )}
-                        >
-                          <item.icon className="mr-3 size-4" />
-                          {item.name}
-                        </Button>
-                      </Link>
-                    );
-                  })}
+                  {/* Personal Settings */}
+                  <div className="space-y-1">
+                    <div className="px-3 py-1">
+                      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Cá nhân
+                      </h4>
+                    </div>
+                    {settingsMenu
+                      .filter(item => item.category === 'personal')
+                      .map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                          <Link key={item.name} href={item.href}>
+                            <Button
+                              variant={isActive ? 'default' : 'ghost'}
+                              className={cn(
+                                'w-full justify-start text-left text-sm h-10',
+                                isActive
+                                  ? 'bg-blue-600 text-white'
+                                  : 'text-gray-300 hover:text-white hover:bg-gray-800',
+                              )}
+                            >
+                              <item.icon className="mr-3 size-4" />
+                              <div className="flex flex-col items-start flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{item.name}</span>
+                                  {item.badge && (
+                                    <Badge variant="secondary" className="text-xs bg-blue-500 text-white">
+                                      {item.badge}
+                                    </Badge>
+                                  )}
+                                </div>
+                                <span className="text-xs text-gray-400">{item.description}</span>
+                              </div>
+                            </Button>
+                          </Link>
+                        );
+                      })}
+                  </div>
+
+                  {/* Organization Settings */}
+                  <div className="space-y-1 mt-3">
+                    <div className="px-3 py-1">
+                      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Công ty
+                      </h4>
+                    </div>
+                    {settingsMenu
+                      .filter(item => item.category === 'organization')
+                      .map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                          <Link key={item.name} href={item.href}>
+                            <Button
+                              variant={isActive ? 'default' : 'ghost'}
+                              className={cn(
+                                'w-full justify-start text-left text-sm h-10',
+                                isActive
+                                  ? 'bg-blue-600 text-white'
+                                  : 'text-gray-300 hover:text-white hover:bg-gray-800',
+                              )}
+                            >
+                              <item.icon className="mr-3 size-4" />
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">{item.name}</span>
+                                <span className="text-xs text-gray-400">{item.description}</span>
+                              </div>
+                            </Button>
+                          </Link>
+                        );
+                      })}
+                  </div>
+
+                  {/* System Settings */}
+                  <div className="space-y-1 mt-3">
+                    <div className="px-3 py-1">
+                      <h4 className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Hệ thống
+                      </h4>
+                    </div>
+                    {settingsMenu
+                      .filter(item => item.category === 'system')
+                      .map((item) => {
+                        const isActive = pathname === item.href;
+                        return (
+                          <Link key={item.name} href={item.href}>
+                            <Button
+                              variant={isActive ? 'default' : 'ghost'}
+                              className={cn(
+                                'w-full justify-start text-left text-sm h-10',
+                                isActive
+                                  ? 'bg-blue-600 text-white'
+                                  : 'text-gray-300 hover:text-white hover:bg-gray-800',
+                              )}
+                            >
+                              <item.icon className="mr-3 size-4" />
+                              <div className="flex flex-col items-start">
+                                <span className="font-medium">{item.name}</span>
+                                <span className="text-xs text-gray-400">{item.description}</span>
+                              </div>
+                            </Button>
+                          </Link>
+                        );
+                      })}
+                  </div>
                 </CollapsibleContent>
               </Collapsible>
             </nav>
@@ -309,16 +440,17 @@ export function DashboardSidebar() {
               <Link href="/dashboard/projects/new">
                 <Button className="w-full bg-blue-600 hover:bg-blue-700">
                   <PlusIcon className="mr-2 size-4" />
-                  Tạo dự án mới
+                  Tạo công trình mới
                 </Button>
               </Link>
-              <Link href="/dashboard/daily-logs/new">
+              <Link href="/dashboard/tasks/new">
                 <Button variant="outline" className="w-full border-gray-600 text-gray-300 hover:bg-gray-800 hover:text-white">
-                  <ClipboardList className="mr-2 size-4" />
-                  Ghi nhật ký
+                  <CheckSquare className="mr-2 size-4" />
+                  Tạo hạng mục
                 </Button>
               </Link>
             </div>
+
           </div>
         </div>
       </div>

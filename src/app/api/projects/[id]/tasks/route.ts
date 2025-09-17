@@ -1,21 +1,24 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { and, desc, eq, ilike, or } from 'drizzle-orm';
+import type { NextRequest } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
+
 import { db } from '@/libs/DB';
-import { projectTaskSchema } from '@/models/Schema';
-import { eq, and, desc, ilike, or } from 'drizzle-orm';
+// import { constructionTaskSchema } from '@/models/Schema';
 
 // Validation schemas
 const createTaskSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']),
-  status: z.enum(['todo', 'in_progress', 'review', 'completed', 'cancelled']).optional(),
-  type: z.enum(['construction', 'inspection', 'maintenance', 'safety', 'quality', 'administrative', 'other']),
+  taskTitle: z.string().min(1, 'Title is required'),
+  taskDescription: z.string().optional(),
+  taskPriority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']),
+  taskStatus: z.enum(['PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED']).optional(),
+  taskType: z.enum(['FOUNDATION', 'STRUCTURE', 'FINISHING', 'MEP', 'INSPECTION', 'SAFETY', 'QUALITY', 'ADMINISTRATIVE']),
   assignedTo: z.string().optional(),
-  dueDate: z.string().optional(),
-  estimatedHours: z.number().min(0).optional(),
-  tags: z.array(z.string()).optional(),
-  dependencies: z.array(z.string()).optional(),
+  startDate: z.string().optional(),
+  expectedEndDate: z.string().optional(),
+  estimatedWorkHours: z.number().min(0).optional(),
+  actualWorkHours: z.number().min(0).optional(),
+  progressPercentage: z.number().min(0).max(100).optional(),
 });
 
 // const updateTaskSchema = createTaskSchema.partial();
@@ -23,15 +26,15 @@ const createTaskSchema = z.object({
 // GET /api/projects/[id]/tasks
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
-    const projectId = parseInt(params.id);
+    const projectId = Number.parseInt(params.id);
     const { searchParams } = new URL(request.url);
 
     // Query parameters
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = parseInt(searchParams.get('limit') || '10');
+    const page = Number.parseInt(searchParams.get('page') || '1');
+    const limit = Number.parseInt(searchParams.get('limit') || '10');
     const status = searchParams.get('status');
     const priority = searchParams.get('priority');
     const type = searchParams.get('type');
@@ -43,48 +46,48 @@ export async function GET(
     const offset = (page - 1) * limit;
 
     // Build where conditions
-    const whereConditions = [eq(projectTaskSchema.projectId, projectId)];
+    const whereConditions = [eq(constructionTaskSchema.projectId, projectId)];
 
     if (status) {
-      whereConditions.push(eq(projectTaskSchema.status, status as any));
+      whereConditions.push(eq(constructionTaskSchema.taskStatus, status as any));
     }
 
     if (priority) {
-      whereConditions.push(eq(projectTaskSchema.priority, priority.toLowerCase() as any));
+      whereConditions.push(eq(constructionTaskSchema.taskPriority, priority as any));
     }
 
     if (type) {
-      whereConditions.push(eq(projectTaskSchema.type, type.toLowerCase() as any));
+      whereConditions.push(eq(constructionTaskSchema.taskType, type as any));
     }
 
     if (assignedTo) {
-      whereConditions.push(eq(projectTaskSchema.assignedTo, assignedTo));
+      whereConditions.push(eq(constructionTaskSchema.assignedTo, assignedTo));
     }
 
     if (search) {
       whereConditions.push(
         or(
-          ilike(projectTaskSchema.title, `%${search}%`),
-          ilike(projectTaskSchema.description, `%${search}%`)
-        )!
+          ilike(constructionTaskSchema.taskTitle, `%${search}%`),
+          ilike(constructionTaskSchema.taskDescription, `%${search}%`),
+        )!,
       );
     }
 
     const dbInstance = await db;
-    
+
     // Get tasks with pagination
     const tasks = await dbInstance
       .select()
-      .from(projectTaskSchema)
+      .from(constructionTaskSchema)
       .where(and(...whereConditions))
-      .orderBy(desc(projectTaskSchema.createdAt))
+      .orderBy(desc(constructionTaskSchema.createdAt))
       .limit(limit)
       .offset(offset);
 
     // Get total count
     const totalResult = await dbInstance
-      .select({ count: projectTaskSchema.id })
-      .from(projectTaskSchema)
+      .select({ count: constructionTaskSchema.id })
+      .from(constructionTaskSchema)
       .where(and(...whereConditions));
 
     const total = totalResult.length;
@@ -105,7 +108,7 @@ export async function GET(
     console.error('Error fetching project tasks:', error);
     return NextResponse.json(
       { error: 'Failed to fetch project tasks', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -113,10 +116,10 @@ export async function GET(
 // POST /api/projects/[id]/tasks
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: { id: string } },
 ) {
   try {
-    const projectId = parseInt(params.id);
+    const projectId = Number.parseInt(params.id);
     const body = await request.json();
 
     // Validate request body
@@ -128,22 +131,24 @@ export async function POST(
 
     const dbInstance = await db;
     const newTask = await dbInstance
-      .insert(projectTaskSchema)
+      .insert(constructionTaskSchema)
       .values({
         projectId,
         organizationId: orgId,
-        title: validatedData.title,
-        description: validatedData.description,
-        priority: validatedData.priority,
-        status: validatedData.status || 'todo',
-        type: validatedData.type,
+        taskTitle: validatedData.taskTitle,
+        taskDescription: validatedData.taskDescription,
+        taskPriority: validatedData.taskPriority,
+        taskStatus: validatedData.taskStatus || 'PENDING',
+        taskType: validatedData.taskType,
         assignedTo: validatedData.assignedTo,
-        dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
-        estimatedHours: validatedData.estimatedHours,
-        tags: validatedData.tags,
-        dependencies: validatedData.dependencies,
-        status: 'todo',
-        progress: 0,
+        startDate: validatedData.startDate ? new Date(validatedData.startDate) : null,
+        expectedEndDate: validatedData.expectedEndDate ? new Date(validatedData.expectedEndDate) : null,
+        estimatedWorkHours: validatedData.estimatedWorkHours,
+        actualWorkHours: validatedData.actualWorkHours || 0,
+        progressPercentage: validatedData.progressPercentage || 0,
+        createdById: userId,
+        updatedById: userId,
+        version: 1,
       })
       .returning();
 
@@ -152,7 +157,7 @@ export async function POST(
     console.error('Error creating project task:', error);
     return NextResponse.json(
       { error: 'Failed to create project task', details: error instanceof Error ? error.message : 'Unknown error' },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

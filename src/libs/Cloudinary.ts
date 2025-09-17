@@ -82,6 +82,14 @@ export async function uploadImage(
       resource_type: 'auto',
     });
 
+    console.log('🔍 Cloudinary upload result:', {
+      public_id: result.public_id,
+      width: result.width,
+      height: result.height,
+      format: result.format,
+      resource_type: result.resource_type,
+    });
+
     // Generate thumbnail URL
     const thumbnailUrl = cloudinary.url(result.public_id, {
       width: 300,
@@ -94,8 +102,8 @@ export async function uploadImage(
     return {
       public_id: result.public_id,
       secure_url: result.secure_url,
-      width: result.width,
-      height: result.height,
+      width: result.width || 0, // Fallback to 0 if undefined
+      height: result.height || 0, // Fallback to 0 if undefined
       thumbnail_url: thumbnailUrl,
     };
   } catch (error) {

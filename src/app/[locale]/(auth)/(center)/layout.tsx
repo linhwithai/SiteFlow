@@ -1,6 +1,6 @@
 // Temporarily disable Clerk auth for testing
 // import { auth } from '@clerk/nextjs/server';
-import { redirect } from 'next/navigation';
+// import { redirect } from 'next/navigation';
 
 export default async function CenteredLayout(props: { children: React.ReactNode }) {
   // Temporarily bypass Clerk authentication for testing

@@ -1,0 +1,1 @@
+ALTER TABLE "construction_project" ALTER COLUMN "budget" SET DATA TYPE text;

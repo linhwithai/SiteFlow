@@ -1,0 +1,37 @@
+[33mcommit 5c39861fcfee103afc38d211537123846b2900ab[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m
+Author: linhwithai <your.email@example.com>
+Date:   Sun Sep 14 17:47:40 2025 +0700
+
+    Fix: Project creation with photos, loading states, and API optimization
+    
+    - Fix photo upload for new projects with pending photos mechanism
+    - Fix duplicate loading indicators on dashboard/projects page
+    - Fix API multiple calls by using useRef for cache instead of useState
+    - Add toast notification system for success/error messages
+    - Disable create button during upload and project creation
+    - Fix modal not closing prematurely during project creation
+    - Temporarily bypass Clerk authentication for testing
+    - Add ProjectModalFixed component with proper photo handling
+    - Optimize useEffect dependencies to prevent infinite loops
+
+ CURRENT_DEBUG_STATUS.md                            |  61 [32m+++[m
+ src/app/[locale]/(auth)/(center)/layout.tsx        |  12 [32m+[m[31m-[m
+ .../[locale]/(auth)/dashboard/projects/page.tsx    | 148 [32m+++++[m[31m-[m
+ src/app/[locale]/(auth)/layout.tsx                 |  35 [32m+[m[31m-[m
+ src/app/api/health/route.ts                        |   1 [32m+[m
+ src/app/api/projects/route.ts                      |  22 [32m+[m[31m-[m
+ src/app/api/simple-test/route.ts                   |   9 [32m+[m
+ src/app/api/test/route.ts                          |   9 [32m+[m
+ src/components/DebugModal.tsx                      |  43 [32m++[m
+ src/components/PhotoUpload.tsx                     |  55 [32m++[m
+ src/components/ProjectForm.tsx                     | 101 [32m+++[m[31m-[m
+ src/components/ProjectModal.tsx                    | 556 [32m++++++++++++[m[31m---------[m
+ src/components/ProjectModalFixed.tsx               | 545 [32m++++++++++++++++++++[m
+ src/components/ProjectModalSimple.tsx              | 553 [32m++++++++++++++++++++[m
+ src/components/SimpleModal.tsx                     |  66 [32m+++[m
+ src/components/ui/toast.tsx                        | 127 [32m+++++[m
+ src/features/dashboard/DashboardHeader.tsx         |  22 [32m+[m[31m-[m
+ src/libs/Cache.ts                                  |   4 [32m+[m[31m-[m
+ src/middleware.ts                                  |  80 [32m+[m[31m--[m
+ test.txt                                           |   1 [31m-[m
+ 20 files changed, 2047 insertions(+), 403 deletions(-)

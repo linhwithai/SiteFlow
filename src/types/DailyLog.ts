@@ -1,5 +1,6 @@
 /**
  * Daily Log Types for Construction Project Management
+ * Optimized with better validation and error handling
  */
 
 export type ProjectPhoto = {
@@ -13,11 +14,13 @@ export type ProjectPhoto = {
   caption?: string;
   tags: string[];
   uploadedAt: Date;
+  mimeType: string;
+  thumbnailUrl?: string;
 };
 
 export type DailyLog = {
   id: number;
-  projectId: number;
+  projectId: number; // REQUIRED - Daily log must belong to a project
   organizationId: string;
   title: string;
   logDate: Date;
@@ -28,14 +31,23 @@ export type DailyLog = {
   workersCount: number;
   issues?: string;
   notes?: string;
+  // ERP Audit Trail
   createdById: string;
+  updatedById?: string;
+  version: number;
+  // ERP Soft Delete
+  deletedAt?: Date;
+  deletedById?: string;
+  // System fields
   updatedAt: Date;
   createdAt: Date;
+  // Relations
   photos?: ProjectPhoto[];
+  projectName?: string; // Denormalized for performance
 };
 
 export type CreateDailyLogRequest = {
-  projectId: number;
+  projectId: number; // REQUIRED - Must belong to a project
   title: string;
   logDate: string; // ISO date string
   weather?: string;
@@ -57,15 +69,23 @@ export type UpdateDailyLogRequest = {
   workersCount?: number;
   issues?: string;
   notes?: string;
+  // Note: projectId cannot be changed after creation
 };
 
 export type DailyLogFilters = {
-  projectId?: number;
+  projectId?: number; // Filter by specific project
   logDateFrom?: string;
   logDateTo?: string;
   weather?: string;
   workDescription?: string;
   search?: string;
+  // Additional filters for better UX
+  workHoursMin?: number;
+  workHoursMax?: number;
+  workersCountMin?: number;
+  workersCountMax?: number;
+  hasIssues?: boolean;
+  hasPhotos?: boolean;
 };
 
 export type DailyLogStats = {
@@ -76,6 +96,11 @@ export type DailyLogStats = {
   averageWorkHours: number;
   totalWorkers: number;
   averageWorkers: number;
+  // Additional stats for better insights
+  weatherBreakdown: Record<string, number>;
+  workHoursByWeek: Array<{ week: string; hours: number }>;
+  productivityTrend: Array<{ date: string; productivity: number }>;
+  topIssues: Array<{ issue: string; count: number }>;
 };
 
 export type DailyLogListResponse = {
@@ -89,4 +114,19 @@ export type DailyLogListResponse = {
     hasPrev: boolean;
   };
   filters: DailyLogFilters;
+  stats?: DailyLogStats; // Include stats in list response for better UX
+};
+
+// Error types for better error handling
+export type DailyLogError = {
+  code: string;
+  message: string;
+  field?: string;
+  details?: Record<string, any>;
+};
+
+export type DailyLogValidationError = {
+  field: string;
+  message: string;
+  value?: any;
 };

@@ -72,9 +72,9 @@ export const organizationSchema = pgTable(
   },
 );
 
-// ===== PROJECT SCHEMA =====
+// ===== CONSTRUCTION PROJECT SCHEMA =====
 // Construction projects within an organization
-export const projectSchema = pgTable('project', {
+export const constructionProjectSchema = pgTable('construction_project', {
   id: serial('id').primaryKey(),
   organizationId: text('organization_id')
     .notNull()
@@ -87,10 +87,18 @@ export const projectSchema = pgTable('project', {
   // Project details
   startDate: timestamp('start_date', { mode: 'date' }),
   endDate: timestamp('end_date', { mode: 'date' }),
-  budget: bigint('budget', { mode: 'number' }), // in VND
+  budget: text('budget'), // in VND - can be any text value
   status: varchar('status', { length: 20 }).default('planning').notNull(), // planning, active, on_hold, completed, cancelled
   // Project manager info
   projectManagerId: text('project_manager_id'), // Clerk User ID
+  // Construction-specific fields
+  projectType: varchar('project_type', { length: 50 }), // residential, commercial, office, industrial, infrastructure, bridge, other
+  buildingArea: integer('building_area'), // in m²
+  floors: integer('floors'), // number of floors
+  basementFloors: integer('basement_floors'), // number of basement floors
+  investor: text('investor'), // investor company name
+  contractor: text('contractor'), // contractor company name
+  buildingPermit: varchar('building_permit', { length: 100 }), // building permit number
   // ERP Audit Trail fields
   createdById: text('created_by_id'),
   updatedById: text('updated_by_id'),
@@ -107,25 +115,25 @@ export const projectSchema = pgTable('project', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 });
 
-// ===== DAILY LOG SCHEMA =====
+// ===== CONSTRUCTION LOG SCHEMA =====
 // Daily construction logs for each project
-export const dailyLogSchema = pgTable('daily_log', {
+export const constructionLogSchema = pgTable('construction_log', {
   id: serial('id').primaryKey(),
   projectId: integer('project_id')
     .notNull()
-    .references(() => projectSchema.id, { onDelete: 'cascade' }),
+    .references(() => constructionProjectSchema.id, { onDelete: 'cascade' }),
   organizationId: text('organization_id')
     .notNull()
     .references(() => organizationSchema.id, { onDelete: 'cascade' }),
   // Log details
-  title: text('title').notNull(),
-  logDate: timestamp('log_date', { mode: 'date' }).notNull(),
+  logTitle: text('log_title').notNull(),
+  constructionDate: timestamp('construction_date', { mode: 'date' }).notNull(),
   weather: text('weather'),
   temperature: integer('temperature'), // in Celsius
   // Work progress
-  workDescription: text('work_description').notNull(),
-  workHours: integer('work_hours').default(8),
-  workersCount: integer('workers_count').default(0),
+  constructionWorkDescription: text('construction_work_description').notNull(),
+  dailyWorkHours: integer('daily_work_hours').default(8),
+  laborCount: integer('labor_count').default(0),
   // Issues and notes
   issues: text('issues'),
   notes: text('notes'),
@@ -144,14 +152,14 @@ export const dailyLogSchema = pgTable('daily_log', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 });
 
-// ===== PROJECT PHOTOS SCHEMA =====
-// Photos and documents for projects
-export const projectPhotoSchema = pgTable('project_photo', {
+// ===== CONSTRUCTION PHOTOS SCHEMA =====
+// Photos and documents for construction projects
+export const constructionPhotoSchema = pgTable('construction_photo', {
   id: serial('id').primaryKey(),
   projectId: integer('project_id')
     .notNull()
-    .references(() => projectSchema.id, { onDelete: 'cascade' }),
-  dailyLogId: integer('daily_log_id').references(() => dailyLogSchema.id, { onDelete: 'cascade' }),
+    .references(() => constructionProjectSchema.id, { onDelete: 'cascade' }),
+  dailyLogId: integer('daily_log_id').references(() => constructionLogSchema.id, { onDelete: 'cascade' }),
   organizationId: text('organization_id')
     .notNull()
     .references(() => organizationSchema.id, { onDelete: 'cascade' }),
@@ -180,35 +188,41 @@ export const projectPhotoSchema = pgTable('project_photo', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 });
 
-// ===== PROJECT TASK SCHEMA =====
-// Tasks within a project for work planning and progress tracking
-export const projectTaskSchema = pgTable('project_task', {
+
+// ===== CONSTRUCTION WORK ITEM SCHEMA =====
+// Detailed construction work items that can be linked to tasks, daily logs, or standalone
+export const constructionWorkItemSchema = pgTable('construction_work_item', {
   id: serial('id').primaryKey(),
   projectId: integer('project_id')
     .notNull()
-    .references(() => projectSchema.id, { onDelete: 'cascade' }),
+    .references(() => constructionProjectSchema.id, { onDelete: 'cascade' }),
+  dailyLogId: integer('daily_log_id').references(() => constructionLogSchema.id, { onDelete: 'cascade' }),
   organizationId: text('organization_id')
     .notNull()
     .references(() => organizationSchema.id, { onDelete: 'cascade' }),
-  // Task details
-  title: text('title').notNull(),
-  description: text('description'),
-  status: varchar('status', { length: 20 }).default('todo').notNull(), // todo, in_progress, review, completed, cancelled
+  // Work item details
+  workItemTitle: text('work_item_title').notNull(),
+  workItemDescription: text('work_item_description'),
+  workItemType: varchar('work_item_type', { length: 20 }).default('concrete_work').notNull(), // concrete_work, steel_work, masonry, finishing, mep_installation, inspection, safety_check
+  status: varchar('status', { length: 20 }).default('planned').notNull(), // planned, in_progress, completed, cancelled
   priority: varchar('priority', { length: 10 }).default('medium').notNull(), // low, medium, high, urgent
-  type: varchar('type', { length: 20 }).default('other').notNull(), // construction, inspection, maintenance, safety, quality, administrative, other
   // Assignment
   assignedTo: text('assigned_to'), // Clerk User ID
   assignedBy: text('assigned_by'), // Clerk User ID
   // Scheduling
+  workDate: timestamp('work_date', { mode: 'date' }),
   dueDate: timestamp('due_date', { mode: 'date' }),
   completedAt: timestamp('completed_at', { mode: 'date' }),
   // Time tracking
-  estimatedHours: integer('estimated_hours'),
-  actualHours: integer('actual_hours'),
-  progress: integer('progress').default(0).notNull(), // 0-100
-  // Metadata
-  tags: text('tags'), // JSON array of tags
-  dependencies: text('dependencies'), // JSON array of task IDs
+  estimatedWorkHours: integer('estimated_work_hours'),
+  actualWorkHours: integer('actual_work_hours'),
+  // Work details
+  constructionLocation: text('construction_location'),
+  weather: text('weather'),
+  laborCount: integer('labor_count').default(0),
+  materials: text('materials'), // JSON array of materials
+  equipment: text('equipment'), // JSON array of equipment
+  notes: text('notes'),
   // ERP Audit Trail fields
   createdById: text('created_by_id'),
   updatedById: text('updated_by_id'),
@@ -225,18 +239,10 @@ export const projectTaskSchema = pgTable('project_task', {
   createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
 });
 
-// ===== LEGACY TODO SCHEMA (for backward compatibility) =====
-export const todoSchema = pgTable('todo', {
-  id: serial('id').primaryKey(),
-  ownerId: text('owner_id').notNull(),
-  title: text('title').notNull(),
-  message: text('message').notNull(),
-  updatedAt: timestamp('updated_at', { mode: 'date' })
-    .defaultNow()
-    .$onUpdate(() => new Date())
-    .notNull(),
-  createdAt: timestamp('created_at', { mode: 'date' }).defaultNow().notNull(),
-});
+
+// ===== LEGACY TODO SCHEMA (REMOVED - Not suitable for construction project management) =====
+// This schema has been removed as it's not suitable for professional construction project management
+// Use constructionWorkItemSchema instead for proper project management
 
 // ===== ERP FINANCIAL MANAGEMENT SCHEMA =====
 // Financial accounts for ERP system
@@ -271,7 +277,7 @@ export const financialTransactionSchema = pgTable('financial_transaction', {
   organizationId: text('organization_id')
     .notNull()
     .references(() => organizationSchema.id, { onDelete: 'cascade' }),
-  projectId: integer('project_id').references(() => projectSchema.id, { onDelete: 'set null' }),
+  projectId: integer('project_id').references(() => constructionProjectSchema.id, { onDelete: 'set null' }),
   transactionDate: timestamp('transaction_date', { mode: 'date' }).notNull(),
   amount: bigint('amount', { mode: 'number' }).notNull(),
   currency: varchar('currency', { length: 3 }).default('VND').notNull(),

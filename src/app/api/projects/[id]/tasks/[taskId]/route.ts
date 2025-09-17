@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
 import { db } from '@/libs/DB';
-import { projectTaskSchema } from '@/models/Schema';
+// import { constructionTaskSchema } from '@/models/Schema';
 import { eq, and } from 'drizzle-orm';
 
 // Validation schemas
@@ -36,12 +36,12 @@ export async function GET(
     const dbInstance = await db;
     const task = await dbInstance
       .select()
-      .from(projectTaskSchema)
+      .from(constructionTaskSchema)
       .where(
         and(
-          eq(projectTaskSchema.id, taskId),
-          eq(projectTaskSchema.projectId, projectId),
-          eq(projectTaskSchema.organizationId, orgId)
+          eq(constructionTaskSchema.id, taskId),
+          eq(constructionTaskSchema.projectId, projectId),
+          eq(constructionTaskSchema.organizationId, orgId)
         )
       )
       .limit(1);
@@ -88,12 +88,12 @@ export async function PUT(
     const dbInstance = await db;
     const existingTask = await dbInstance
       .select()
-      .from(projectTaskSchema)
+      .from(constructionTaskSchema)
       .where(
         and(
-          eq(projectTaskSchema.id, taskId),
-          eq(projectTaskSchema.projectId, projectId),
-          eq(projectTaskSchema.organizationId, orgId)
+          eq(constructionTaskSchema.id, taskId),
+          eq(constructionTaskSchema.projectId, projectId),
+          eq(constructionTaskSchema.organizationId, orgId)
         )
       )
       .limit(1);
@@ -128,13 +128,13 @@ export async function PUT(
     }
 
     const updatedTask = await dbInstance
-      .update(projectTaskSchema)
+      .update(constructionTaskSchema)
       .set(updateData)
       .where(
         and(
-          eq(projectTaskSchema.id, taskId),
-          eq(projectTaskSchema.projectId, projectId),
-          eq(projectTaskSchema.organizationId, orgId)
+          eq(constructionTaskSchema.id, taskId),
+          eq(constructionTaskSchema.projectId, projectId),
+          eq(constructionTaskSchema.organizationId, orgId)
         )
       )
       .returning();
@@ -177,12 +177,12 @@ export async function DELETE(
     const dbInstance = await db;
     const existingTask = await dbInstance
       .select()
-      .from(projectTaskSchema)
+      .from(constructionTaskSchema)
       .where(
         and(
-          eq(projectTaskSchema.id, taskId),
-          eq(projectTaskSchema.projectId, projectId),
-          eq(projectTaskSchema.organizationId, orgId)
+          eq(constructionTaskSchema.id, taskId),
+          eq(constructionTaskSchema.projectId, projectId),
+          eq(constructionTaskSchema.organizationId, orgId)
         )
       )
       .limit(1);
@@ -196,13 +196,13 @@ export async function DELETE(
 
     // Soft delete by setting isActive to false
     await dbInstance
-      .update(projectTaskSchema)
+      .update(constructionTaskSchema)
       .set({ isActive: false })
       .where(
         and(
-          eq(projectTaskSchema.id, taskId),
-          eq(projectTaskSchema.projectId, projectId),
-          eq(projectTaskSchema.organizationId, orgId)
+          eq(constructionTaskSchema.id, taskId),
+          eq(constructionTaskSchema.projectId, projectId),
+          eq(constructionTaskSchema.organizationId, orgId)
         )
       );
 

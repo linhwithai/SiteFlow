@@ -1,6 +1,5 @@
 'use client';
 
-import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,7 +11,7 @@ type SimpleModalProps = {
 };
 
 export function SimpleModal({ isOpen, onClose }: SimpleModalProps) {
-  console.log('🔍 SimpleModal rendered, isOpen:', isOpen);
+  // Debug: SimpleModal rendered
   
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -63,4 +62,3 @@ export function SimpleModal({ isOpen, onClose }: SimpleModalProps) {
     </Dialog>
   );
 }
-

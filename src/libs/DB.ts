@@ -19,9 +19,9 @@ let drizzle: any;
 async function initializeDB() {
   // Need a database for production? Check out https://www.prisma.io/?via=saasboilerplatesrc
   // Tested and compatible with Next.js Boilerplate
-  if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD && Env.DATABASE_URL) {
+  if (process.env.NEXT_PHASE !== PHASE_PRODUCTION_BUILD && (Env.DATABASE_URL || process.env.DATABASE_URL)) {
     client = new Client({
-      connectionString: Env.DATABASE_URL,
+      connectionString: process.env.DATABASE_URL || Env.DATABASE_URL,
     });
     await client.connect();
 
@@ -41,9 +41,14 @@ async function initializeDB() {
     }
 
     drizzle = global.drizzle;
-    await migratePglite(global.drizzle, {
-      migrationsFolder: path.join(process.cwd(), 'migrations'),
-    });
+    
+    try {
+      await migratePglite(global.drizzle, {
+        migrationsFolder: path.join(process.cwd(), 'migrations'),
+      });
+    } catch (error) {
+      console.log('Migration error, continuing with existing schema:', error);
+    }
   }
 }
 

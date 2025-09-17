@@ -15,29 +15,42 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { usePhotoUpload } from '@/hooks/usePhotoUpload';
-import { PROJECT_STATUS } from '@/types/Enum';
+import { CONSTRUCTION_PROJECT_STATUS } from '@/types/Enum';
 import type { CreateProjectRequest, Project, UpdateProjectRequest } from '@/types/Project';
 
 const projectFormSchema = z.object({
-  name: z.string().min(1, 'Tên dự án là bắt buộc').max(255, 'Tên dự án quá dài'),
+  name: z.string().min(1, 'Tên công trình là bắt buộc').max(255, 'Tên công trình quá dài'),
   description: z.string().max(1000, 'Mô tả quá dài').optional(),
   address: z.string().max(500, 'Địa chỉ quá dài').optional(),
   city: z.string().max(100, 'Tên thành phố quá dài').optional(),
   province: z.string().max(100, 'Tên tỉnh quá dài').optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
-  budget: z.number().min(0, 'Ngân sách phải là số dương').optional(),
+  budget: z.union([z.string().transform(val => val === '' ? undefined : val), z.number()]).optional(),
   projectManagerId: z.string().optional(),
-  status: z.enum(Object.values(PROJECT_STATUS) as [string, ...string[]]).optional(),
+  status: z.enum(Object.values(CONSTRUCTION_PROJECT_STATUS) as [string, ...string[]]).optional(),
+  // Thêm các trường mới cho ngành xây dựng
+  investor: z.string().max(255, 'Tên chủ đầu tư quá dài').optional(),
+  contractor: z.string().max(255, 'Tên đơn vị thi công quá dài').optional(),
+  buildingPermit: z.string().max(100, 'Số giấy phép xây dựng quá dài').optional(),
+}).refine((data) => {
+  if (data.startDate && data.endDate) {
+    return new Date(data.endDate) > new Date(data.startDate);
+  }
+  return true;
+}, {
+  message: 'Ngày kết thúc phải sau ngày bắt đầu',
+  path: ['endDate'],
 });
 
 type ProjectFormData = z.infer<typeof projectFormSchema>;
 
 type ProjectFormProps = {
   project?: Project;
-  onSubmit: (data: CreateProjectRequest | UpdateProjectRequest) => Promise<void>;
+  onSubmit: (data: CreateProjectRequest | UpdateProjectRequest, photos?: any[]) => Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
+  onPhotosReady?: (photos: any[]) => void;
 };
 
 type User = {
@@ -47,7 +60,7 @@ type User = {
   role: string;
 };
 
-export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: ProjectFormProps) {
+export function ProjectForm({ project, onSubmit, onCancel, isLoading = false, onPhotosReady }: ProjectFormProps) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
@@ -84,7 +97,10 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
       endDate: project?.endDate ? new Date(project.endDate).toISOString().split('T')[0] : '',
       budget: project?.budget || undefined,
       projectManagerId: project?.projectManagerId || '',
-      status: project?.status || PROJECT_STATUS.PLANNING,
+      status: project?.status || CONSTRUCTION_PROJECT_STATUS.PLANNING,
+      investor: project?.investor || '',
+      contractor: project?.contractor || '',
+      buildingPermit: project?.buildingPermit || '',
     },
   });
 
@@ -128,10 +144,21 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
         endDate: data.endDate || undefined,
         budget: data.budget || undefined,
         projectManagerId: data.projectManagerId === 'none' ? undefined : data.projectManagerId || undefined,
+        // Thêm các trường mới cho ngành xây dựng
+        investor: data.investor || undefined,
+        contractor: data.contractor || undefined,
+        buildingPermit: data.buildingPermit || undefined,
         ...(project && { status: data.status }),
       };
 
-      await onSubmit(apiData);
+      // Nếu đang tạo dự án mới và có ảnh, truyền ảnh trực tiếp vào onSubmit
+      if (!project && photos.length > 0) {
+        // Truyền ảnh trực tiếp vào onSubmit để xử lý đồng thời
+        await onSubmit(apiData, photos);
+      } else {
+        // Cập nhật dự án hoặc tạo dự án không có ảnh
+        await onSubmit(apiData);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -146,12 +173,12 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
           </div>
           <div>
             <CardTitle className="text-xl">
-              {project ? 'Chỉnh sửa dự án' : 'Tạo dự án mới'}
+              {project ? 'Chỉnh sửa công trình' : 'Tạo công trình mới'}
             </CardTitle>
             <CardDescription className="mt-1">
               {project
-                ? 'Cập nhật thông tin dự án của bạn'
-                : 'Điền thông tin để tạo dự án mới'}
+                ? 'Cập nhật thông tin công trình xây dựng'
+                : 'Điền thông tin để tạo công trình xây dựng mới'}
             </CardDescription>
           </div>
         </div>
@@ -184,11 +211,11 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
                 </div>
 
             <div className="space-y-2">
-              <Label htmlFor="name">Tên dự án *</Label>
+              <Label htmlFor="name">Tên công trình *</Label>
               <Input
                 id="name"
                 {...register('name')}
-                placeholder="Nhập tên dự án"
+                placeholder="Ví dụ: Chung cư cao cấp ABC, Nhà máy sản xuất XYZ"
                 className={errors.name ? 'border-red-500' : ''}
               />
               {errors.name && (
@@ -197,11 +224,11 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="description">Mô tả</Label>
+              <Label htmlFor="description">Mô tả công trình</Label>
               <Textarea
                 id="description"
                 {...register('description')}
-                placeholder="Mô tả chi tiết về dự án"
+                placeholder="Mô tả chi tiết về công trình xây dựng, quy mô, đặc điểm kỹ thuật..."
                 rows={3}
                 className={errors.description ? 'border-red-500' : ''}
               />
@@ -209,6 +236,8 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
                 <p className="text-sm text-red-500">{errors.description.message}</p>
               )}
             </div>
+
+
           </div>
 
           {/* Location Information */}
@@ -247,11 +276,11 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="address">Địa chỉ</Label>
+              <Label htmlFor="address">Địa chỉ công trình</Label>
               <Input
                 id="address"
                 {...register('address')}
-                placeholder="Nhập địa chỉ chi tiết"
+                placeholder="Số nhà, tên đường, phường/xã, quận/huyện"
                 className={errors.address ? 'border-red-500' : ''}
               />
               {errors.address && (
@@ -296,43 +325,85 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
             </div>
           </div>
 
-          {/* Budget */}
+          {/* Budget & Financial */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
               <DollarSignIcon className="size-5 text-gray-600" />
-              <h3 className="text-lg font-medium">Ngân sách</h3>
+              <h3 className="text-lg font-medium">Tài chính & Đầu tư</h3>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="budget">Ngân sách (VNĐ)</Label>
+              <Label htmlFor="budget">Tổng mức đầu tư (VNĐ)</Label>
               <Input
                 id="budget"
-                type="number"
-                {...register('budget', { valueAsNumber: true })}
-                placeholder="Nhập ngân sách dự án"
+                type="text"
+                {...register('budget')}
+                placeholder="Ví dụ: 50 tỷ VNĐ, 1.5 tỷ, N/A, hoặc để trống"
                 className={errors.budget ? 'border-red-500' : ''}
               />
               {errors.budget && (
                 <p className="text-sm text-red-500">{errors.budget.message}</p>
               )}
             </div>
-          </div>
 
-          {/* Project Manager */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <UserIcon className="size-5 text-gray-600" />
-              <h3 className="text-lg font-medium">Quản lý dự án</h3>
+            {/* Chủ đầu tư và đơn vị thi công */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="investor">Chủ đầu tư</Label>
+                <Input
+                  id="investor"
+                  {...register('investor')}
+                  placeholder="Tên công ty chủ đầu tư"
+                  className={errors.investor ? 'border-red-500' : ''}
+                />
+                {errors.investor && (
+                  <p className="text-sm text-red-500">{errors.investor.message}</p>
+                )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="contractor">Đơn vị thi công</Label>
+                <Input
+                  id="contractor"
+                  {...register('contractor')}
+                  placeholder="Tên công ty thi công"
+                  className={errors.contractor ? 'border-red-500' : ''}
+                />
+                {errors.contractor && (
+                  <p className="text-sm text-red-500">{errors.contractor.message}</p>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="projectManagerId">Quản lý dự án</Label>
+              <Label htmlFor="buildingPermit">Số giấy phép xây dựng</Label>
+              <Input
+                id="buildingPermit"
+                {...register('buildingPermit')}
+                placeholder="Ví dụ: GPXD-2024-001234"
+                className={errors.buildingPermit ? 'border-red-500' : ''}
+              />
+              {errors.buildingPermit && (
+                <p className="text-sm text-red-500">{errors.buildingPermit.message}</p>
+              )}
+            </div>
+          </div>
+
+          {/* Project Management */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <UserIcon className="size-5 text-gray-600" />
+              <h3 className="text-lg font-medium">Quản lý công trình</h3>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="projectManagerId">Chỉ huy trưởng công trình</Label>
               <Select
                 value={watch('projectManagerId') || 'none'}
                 onValueChange={value => setValue('projectManagerId', value)}
               >
                 <SelectTrigger className={errors.projectManagerId ? 'border-red-500' : ''}>
-                  <SelectValue placeholder={isLoadingUsers ? 'Đang tải...' : 'Chọn quản lý dự án'} />
+                  <SelectValue placeholder={isLoadingUsers ? 'Đang tải...' : 'Chọn chỉ huy trưởng'} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Không chọn</SelectItem>
@@ -356,20 +427,20 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
           {/* Status (only for edit mode) */}
           {project && (
             <div className="space-y-4">
-              <h3 className="text-lg font-medium">Trạng thái dự án</h3>
+              <h3 className="text-lg font-medium">Trạng thái công trình</h3>
 
               <div className="space-y-2">
-                <Label htmlFor="status">Trạng thái</Label>
+                <Label htmlFor="status">Trạng thái thi công</Label>
                 <select
                   id="status"
                   {...register('status')}
                   className="w-full rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500"
                 >
-                  <option value={PROJECT_STATUS.PLANNING}>Lập kế hoạch</option>
-                  <option value={PROJECT_STATUS.ACTIVE}>Đang thực hiện</option>
-                  <option value={PROJECT_STATUS.ON_HOLD}>Tạm dừng</option>
-                  <option value={PROJECT_STATUS.COMPLETED}>Hoàn thành</option>
-                  <option value={PROJECT_STATUS.CANCELLED}>Hủy bỏ</option>
+                  <option value={CONSTRUCTION_PROJECT_STATUS.PLANNING}>Lập kế hoạch</option>
+                  <option value={CONSTRUCTION_PROJECT_STATUS.ACTIVE}>Đang thi công</option>
+                  <option value={CONSTRUCTION_PROJECT_STATUS.ON_HOLD}>Tạm dừng</option>
+                  <option value={CONSTRUCTION_PROJECT_STATUS.COMPLETED}>Hoàn thành</option>
+                  <option value={CONSTRUCTION_PROJECT_STATUS.CANCELLED}>Hủy bỏ</option>
                 </select>
                 {errors.status && (
                   <p className="text-sm text-red-500">{errors.status.message}</p>
@@ -383,9 +454,9 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
             <TabsContent value="photos" className="space-y-6">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-lg font-medium">Hình ảnh dự án</h3>
+                  <h3 className="text-lg font-medium">Hình ảnh công trình</h3>
                   <p className="text-sm text-muted-foreground">
-                    Upload hình ảnh liên quan đến dự án. Hỗ trợ JPEG, PNG, WebP, GIF (tối đa 10MB mỗi ảnh).
+                    Upload hình ảnh thiết kế, hiện trạng, tiến độ thi công. Hỗ trợ JPEG, PNG, WebP, GIF (tối đa 10MB mỗi ảnh).
                   </p>
                 </div>
 
@@ -439,7 +510,7 @@ export function ProjectForm({ project, onSubmit, onCancel, isLoading = false }: 
                     </div>
                   )
                 : (
-                    project ? 'Cập nhật dự án' : 'Tạo dự án mới'
+                    project ? 'Cập nhật công trình' : 'Tạo công trình mới'
                   )}
             </Button>
           </div>

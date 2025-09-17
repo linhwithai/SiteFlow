@@ -10,7 +10,7 @@ import { NextResponse } from 'next/server';
 import { deleteImage } from '@/libs/Cloudinary';
 import { db } from '@/libs/DB';
 import { logger } from '@/libs/Logger';
-import { projectPhotoSchema } from '@/models/Schema';
+import { constructionPhotoSchema } from '@/models/Schema';
 
 export async function DELETE(
   _request: NextRequest,
@@ -30,11 +30,11 @@ export async function DELETE(
     // Check if photo exists and belongs to project
     const [existingPhoto] = await database
       .select()
-      .from(projectPhotoSchema)
+      .from(constructionPhotoSchema)
       .where(
         and(
-          eq(projectPhotoSchema.id, photoId),
-          eq(projectPhotoSchema.projectId, projectId),
+          eq(constructionPhotoSchema.id, photoId),
+          eq(constructionPhotoSchema.projectId, projectId),
         ),
       )
       .limit(1);
@@ -56,11 +56,11 @@ export async function DELETE(
 
     // Delete photo from database
     await database
-      .delete(projectPhotoSchema)
+      .delete(constructionPhotoSchema)
       .where(
         and(
-          eq(projectPhotoSchema.id, photoId),
-          eq(projectPhotoSchema.projectId, projectId),
+          eq(constructionPhotoSchema.id, photoId),
+          eq(constructionPhotoSchema.projectId, projectId),
         ),
       );
 

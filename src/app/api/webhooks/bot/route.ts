@@ -9,7 +9,8 @@ import { NextResponse } from 'next/server';
 
 import { db } from '@/libs/DB';
 import { logger } from '@/libs/Logger';
-import { dailyLogSchema, projectSchema } from '@/models/Schema';
+import { constructionLogSchema } from '@/models/Schema';
+// import { projectSchema } from '@/models/Schema';
 
 // Validation schemas
 const botWebhookSchema = z.object({
@@ -67,7 +68,7 @@ export async function POST(request: NextRequest) {
         
         // Create daily log
         const [newDailyLog] = await database
-          .insert(dailyLogSchema)
+          .insert(constructionLogSchema)
           .values({
             projectId: logData.projectId,
             organizationId,

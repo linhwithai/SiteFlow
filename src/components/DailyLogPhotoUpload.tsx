@@ -17,6 +17,7 @@ type DailyLogPhotoUploadProps = {
   onUpdateCaption: (photoId: string, caption: string) => Promise<void>;
   isLoading?: boolean;
   maxPhotos?: number;
+  disabled?: boolean;
 };
 
 export function DailyLogPhotoUpload({
@@ -26,6 +27,7 @@ export function DailyLogPhotoUpload({
   onUpdateCaption,
   isLoading = false,
   maxPhotos = 10,
+  disabled = false,
 }: DailyLogPhotoUploadProps) {
   const [dragActive, setDragActive] = useState(false);
   const [editingCaption, setEditingCaption] = useState<string | null>(null);
@@ -94,14 +96,16 @@ export function DailyLogPhotoUpload({
       {/* Upload Area */}
       <div
         className={`relative rounded-lg border-2 border-dashed p-6 transition-colors ${
-          dragActive
-            ? 'border-blue-500 bg-blue-50'
-            : 'border-gray-300 hover:border-gray-400'
+          disabled
+            ? 'border-gray-200 bg-gray-50 cursor-not-allowed'
+            : dragActive
+              ? 'border-blue-500 bg-blue-50'
+              : 'border-gray-300 hover:border-gray-400'
         } ${isLoading ? 'pointer-events-none opacity-50' : ''}`}
-        onDragEnter={handleDrag}
-        onDragLeave={handleDrag}
-        onDragOver={handleDrag}
-        onDrop={handleDrop}
+        onDragEnter={disabled ? undefined : handleDrag}
+        onDragLeave={disabled ? undefined : handleDrag}
+        onDragOver={disabled ? undefined : handleDrag}
+        onDrop={disabled ? undefined : handleDrop}
       >
         <div className="text-center">
           <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-gray-100">
@@ -114,12 +118,17 @@ export function DailyLogPhotoUpload({
                 )}
           </div>
           <div className="mt-4">
-            <Label htmlFor="photo-upload" className="cursor-pointer">
+            <Label htmlFor="photo-upload" className={disabled ? 'cursor-not-allowed' : 'cursor-pointer'}>
               <span className="mt-2 block text-sm font-medium text-gray-900">
-                {isLoading ? 'Đang tải lên...' : 'Kéo thả ảnh vào đây hoặc nhấp để chọn'}
+                {disabled 
+                  ? 'Tải lên ảnh sau khi lưu nhật ký'
+                  : isLoading 
+                    ? 'Đang tải lên...' 
+                    : 'Kéo thả ảnh vào đây hoặc nhấp để chọn'
+                }
               </span>
               <span className="mt-1 block text-sm text-gray-500">
-                PNG, JPG, GIF lên đến 10MB
+                {disabled ? 'Chức năng sẽ khả dụng sau khi lưu nhật ký' : 'PNG, JPG, GIF lên đến 10MB'}
               </span>
             </Label>
             <Input
@@ -128,7 +137,7 @@ export function DailyLogPhotoUpload({
               accept="image/*"
               onChange={handleFileInput}
               className="hidden"
-              disabled={isLoading || photos.length >= maxPhotos}
+              disabled={disabled || isLoading || photos.length >= maxPhotos}
             />
           </div>
           {photos.length >= maxPhotos && (
@@ -167,18 +176,20 @@ export function DailyLogPhotoUpload({
                     />
 
                     {/* Overlay Actions */}
-                    <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 transition-all duration-200 group-hover:bg-opacity-50">
-                      <div className="flex gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => onDelete(photo.id)}
-                          className="size-8 p-0"
-                        >
-                          <X className="size-4" />
-                        </Button>
+                    {!disabled && (
+                      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 transition-all duration-200 group-hover:bg-opacity-50">
+                        <div className="flex gap-2 opacity-0 transition-opacity duration-200 group-hover:opacity-100">
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => onDelete(photo.id)}
+                            className="size-8 p-0"
+                          >
+                            <X className="size-4" />
+                          </Button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
 
                   {/* Photo Info */}
@@ -201,6 +212,7 @@ export function DailyLogPhotoUpload({
                                 placeholder="Thêm mô tả cho ảnh..."
                                 className="min-h-[60px] text-xs"
                                 rows={2}
+                                disabled={disabled}
                               />
                               <div className="flex gap-1">
                                 <Button
@@ -208,6 +220,7 @@ export function DailyLogPhotoUpload({
                                   variant="outline"
                                   onClick={() => saveCaption(photo.id)}
                                   className="h-6 px-2 text-xs"
+                                  disabled={disabled}
                                 >
                                   Lưu
                                 </Button>
@@ -216,6 +229,7 @@ export function DailyLogPhotoUpload({
                                   variant="ghost"
                                   onClick={cancelEditing}
                                   className="h-6 px-2 text-xs"
+                                  disabled={disabled}
                                 >
                                   Hủy
                                 </Button>
@@ -224,10 +238,12 @@ export function DailyLogPhotoUpload({
                           )
                         : (
                             <div
-                              className="flex min-h-[40px] cursor-pointer items-center text-xs text-gray-600 hover:text-gray-800"
-                              onClick={() => startEditingCaption(photo)}
+                              className={`flex min-h-[40px] items-center text-xs text-gray-600 ${
+                                disabled ? 'cursor-default' : 'cursor-pointer hover:text-gray-800'
+                              }`}
+                              onClick={disabled ? undefined : () => startEditingCaption(photo)}
                             >
-                              {photo.caption || 'Nhấp để thêm mô tả...'}
+                              {photo.caption || (disabled ? 'Mô tả ảnh' : 'Nhấp để thêm mô tả...')}
                             </div>
                           )}
                     </div>

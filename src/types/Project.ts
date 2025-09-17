@@ -2,12 +2,22 @@
  * Project-related types and interfaces
  */
 
-import type { PROJECT_STATUS, TASK_STATUS, TASK_PRIORITY, TASK_TYPE } from './Enum';
+import type { CONSTRUCTION_PROJECT_STATUS, CONSTRUCTION_TASK_STATUS, CONSTRUCTION_TASK_PRIORITY, CONSTRUCTION_TASK_TYPE } from './Enum';
 
-export type ProjectStatus = typeof PROJECT_STATUS[keyof typeof PROJECT_STATUS];
-export type TaskStatus = typeof TASK_STATUS[keyof typeof TASK_STATUS];
-export type TaskPriority = typeof TASK_PRIORITY[keyof typeof TASK_PRIORITY];
-export type TaskType = typeof TASK_TYPE[keyof typeof TASK_TYPE];
+export type ProjectStatus = typeof CONSTRUCTION_PROJECT_STATUS[keyof typeof CONSTRUCTION_PROJECT_STATUS];
+export type TaskStatus = typeof CONSTRUCTION_TASK_STATUS[keyof typeof CONSTRUCTION_TASK_STATUS];
+export type TaskPriority = typeof CONSTRUCTION_TASK_PRIORITY[keyof typeof CONSTRUCTION_TASK_PRIORITY];
+export type TaskType = typeof CONSTRUCTION_TASK_TYPE[keyof typeof CONSTRUCTION_TASK_TYPE];
+
+export type ProjectPhoto = {
+  id: string;
+  publicId: string;
+  url: string;
+  name: string;
+  size: number;
+  uploadedAt: Date;
+  tags: string[];
+};
 
 export type Project = {
   id: string;
@@ -23,6 +33,7 @@ export type Project = {
   status: ProjectStatus;
   projectManagerId?: string;
   isActive: boolean;
+  photos?: ProjectPhoto[];
   createdAt: Date;
   updatedAt: Date;
 };
