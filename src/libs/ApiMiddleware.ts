@@ -72,7 +72,7 @@ export async function withCache<T>(
     // Try to get from cache
     const cached = await dailyLogCache.get<T>(key);
     if (cached !== null) {
-      logger.debug('Cache hit for daily logs', { key });
+      logger.debug('Cache hit for daily logs', {  key  });
       return cached;
     }
 
@@ -85,7 +85,7 @@ export async function withCache<T>(
     logger.debug('Cache miss, stored result', { key });
     return result;
   } catch (error) {
-    logger.error('Cache error for daily logs', { key, error });
+    logger.error('Cache error for daily logs', {  key, error  });
     // If cache fails, still execute fetcher
     return await fetcher();
   }
@@ -108,9 +108,9 @@ export async function invalidateDailyLogCache(projectId: number, dailyLogId?: nu
     // Invalidate stats cache
     await dailyLogCache.delete(cacheKeys.dailyLogStats(projectId));
     
-    logger.info('Daily log cache invalidated', { projectId, dailyLogId });
+    logger.info('Daily log cache invalidated', {  projectId, dailyLogId  });
   } catch (error) {
-    logger.error('Error invalidating daily log cache', { projectId, dailyLogId, error });
+    logger.error('Error invalidating daily log cache', {  projectId, dailyLogId, error  });
   }
 }
 
@@ -135,7 +135,7 @@ export function createErrorResponse(
     },
   };
 
-  logger.error('API Error Response', { message, status, details });
+  logger.error('API Error Response', {  message, status, details  });
 
   return NextResponse.json(errorResponse, { status });
 }
@@ -199,7 +199,7 @@ export function validateParams<T>(
     return { success: true, data: validatedData };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      logger.error('Validation error', { errors: error.errors });
+      logger.error('Validation error', {  errors: error.errors  });
       return {
         success: false,
         error: createErrorResponse('Validation failed', 400, {
@@ -208,7 +208,7 @@ export function validateParams<T>(
       };
     }
     
-    logger.error('Unknown validation error', { error });
+    logger.error('Unknown validation error', {  error  });
     return {
       success: false,
       error: createErrorResponse('Invalid request data', 400),
@@ -282,13 +282,13 @@ export function logApiRequest(
   dailyLogId?: number,
   additionalData?: Record<string, any>
 ) {
-  logger.info('API Request', {
+  logger.info('API Request', { 
     method,
     endpoint,
     projectId,
     dailyLogId,
     ...additionalData,
-  });
+   });
 }
 
 /**
@@ -302,13 +302,13 @@ export function logApiResponse(
   dailyLogId?: number,
   additionalData?: Record<string, any>
 ) {
-  logger.info('API Response', {
+  logger.info('API Response', { 
     method,
     endpoint,
     status,
     projectId,
     dailyLogId,
     ...additionalData,
-  });
+   });
 }
 

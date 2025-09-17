@@ -99,11 +99,11 @@ export class CacheManager {
     entry.accessCount++;
     entry.lastAccessed = Date.now();
 
-    logger.debug('Cache hit', {
+    logger.debug('Cache hit', { 
       key: fullKey,
       accessCount: entry.accessCount,
       age: Date.now() - entry.createdAt,
-    });
+     });
 
     return entry.value as T;
   }
@@ -131,11 +131,11 @@ export class CacheManager {
 
     this.store.set(fullKey, entry);
 
-    logger.debug('Cache set', {
+    logger.debug('Cache set', { 
       key: fullKey,
       ttl,
       size: this.store.size,
-    });
+     });
   }
 
   /**
@@ -146,7 +146,7 @@ export class CacheManager {
     const deleted = this.store.delete(fullKey);
 
     if (deleted) {
-      logger.debug('Cache deleted', { key: fullKey });
+      logger.debug('Cache deleted', {  key: fullKey  });
     }
 
     return deleted;
@@ -237,7 +237,7 @@ export class CacheManager {
       }
     }
 
-    logger.debug('Evicted LRU entries', { count: toRemove });
+    logger.debug('Evicted LRU entries', {  count: toRemove  });
   }
 
   /**
@@ -256,9 +256,9 @@ export class CacheManager {
     expiredKeys.forEach(key => this.store.delete(key));
 
     if (expiredKeys.length > 0) {
-      logger.debug('Cleaned up expired cache entries', {
+      logger.debug('Cleaned up expired cache entries', { 
         count: expiredKeys.length,
-      });
+       });
     }
   }
 }
@@ -322,7 +322,7 @@ export class CacheInvalidator {
       }
     }
 
-    logger.info('Cache invalidated by pattern', { pattern, count });
+    logger.info('Cache invalidated by pattern', {  pattern, count  });
     return count;
   }
 

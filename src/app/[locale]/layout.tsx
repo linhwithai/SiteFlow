@@ -106,26 +106,46 @@ export default async function RootLayout(props: {
   children: React.ReactNode;
   params: { locale: string };
 }) {
-  unstable_setRequestLocale(props.params.locale);
+  try {
+    // Set locale for next-intl
+    if (props.params?.locale) {
+      unstable_setRequestLocale(props.params.locale);
+    }
 
-  // Get messages from server
-  const messages = await getMessages();
+    // Get messages from server
+    const messages = await getMessages();
 
-  // The `suppressHydrationWarning` in <html> is used to prevent hydration errors caused by `next-themes`.
-  // Solution provided by the package itself: https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
+    // The `suppressHydrationWarning` in <html> is used to prevent hydration errors caused by `next-themes`.
+    // Solution provided by the package itself: https://github.com/pacocoursey/next-themes?tab=readme-ov-file#with-app
 
-  // The `suppressHydrationWarning` attribute in <body> is used to prevent hydration errors caused by Sentry Overlay,
-  // which dynamically adds a `style` attribute to the body tag.
-  return (
-    <html lang={props.params.locale} suppressHydrationWarning>
-      <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
-        {/* PRO: Dark mode support for Shadcn UI */}
-        <ClientLayout locale={props.params.locale} messages={messages}>
-          {props.children}
+    // The `suppressHydrationWarning` attribute in <body> is used to prevent hydration errors caused by Sentry Overlay,
+    // which dynamically adds a `style` attribute to the body tag.
+    return (
+      <html lang={props.params?.locale || 'en'} suppressHydrationWarning>
+        <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
+          {/* PRO: Dark mode support for Shadcn UI */}
+          <ClientLayout locale={props.params?.locale || 'en'} messages={messages || {}}>
+            {props.children}
 
-          <DemoBadge />
-        </ClientLayout>
-      </body>
-    </html>
-  );
+            <DemoBadge />
+          </ClientLayout>
+        </body>
+      </html>
+    );
+  } catch (error) {
+    console.error('Layout error:', error);
+    // Fallback layout
+    return (
+      <html lang="en" suppressHydrationWarning>
+        <body className="bg-background text-foreground antialiased" suppressHydrationWarning>
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <h1 className="text-2xl font-bold text-red-600 mb-4">Layout Error</h1>
+              <p className="text-gray-600">Please refresh the page or contact support.</p>
+            </div>
+          </div>
+        </body>
+      </html>
+    );
+  }
 }

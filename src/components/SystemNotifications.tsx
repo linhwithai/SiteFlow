@@ -1,256 +1,197 @@
 'use client';
 
-import { 
-  AlertTriangle, 
-  CheckCircle, 
-  Info, 
-  X, 
-  Bell
-} from 'lucide-react';
+import { Bell, AlertTriangle, CheckCircle, Info } from 'lucide-react';
 import { useState } from 'react';
-
-import { Alert } from '@/components/ui/alert';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
-type NotificationType = 'info' | 'warning' | 'success' | 'error';
-
-type SystemNotification = {
+interface Notification {
   id: string;
-  type: NotificationType;
+  type: 'success' | 'error' | 'warning' | 'info';
   title: string;
   message: string;
   timestamp: string;
-  isRead: boolean;
+  read: boolean;
   action?: {
     label: string;
-    onClick: () => void;
+    href: string;
   };
-};
+}
 
-type SystemNotificationsProps = {
-  notifications?: SystemNotification[];
-  onDismiss?: (id: string) => void;
-  onMarkAsRead?: (id: string) => void;
-};
+interface SystemNotificationsProps {
+  notifications?: Notification[];
+  maxItems?: number;
+}
 
-// Mock notifications - sẽ được thay thế bằng API thực
-const mockNotifications: SystemNotification[] = [
-  {
-    id: '1',
-    type: 'warning',
-    title: 'Ngân sách sắp hết',
-    message: 'Dự án "Tòa nhà A" đã sử dụng 85% ngân sách',
-    timestamp: '2 phút trước',
-    isRead: false,
-    action: {
-      label: 'Xem chi tiết',
-      onClick: () => {} // TODO: Implement view budget details
+export function SystemNotifications({ notifications = [], maxItems = 5 }: SystemNotificationsProps) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  // Mock notifications if none provided
+  const mockNotifications: Notification[] = notifications.length > 0 ? notifications : [
+    {
+      id: '1',
+      type: 'warning',
+      title: 'Dự án sắp quá hạn',
+      message: 'Dự án "Chung cư The Sun City" còn 3 ngày nữa đến hạn hoàn thành',
+      timestamp: '2 giờ trước',
+      read: false,
+      action: {
+        label: 'Xem chi tiết',
+        href: '/dashboard/projects/1'
+      }
+    },
+    {
+      id: '2',
+      type: 'info',
+      title: 'Nhật ký thi công mới',
+      message: 'Dự án "Mega Mall" vừa có nhật ký thi công mới được cập nhật',
+      timestamp: '4 giờ trước',
+      read: false,
+      action: {
+        label: 'Xem nhật ký',
+        href: '/dashboard/projects/2/daily-logs'
+      }
+    },
+    {
+      id: '3',
+      type: 'success',
+      title: 'Hạng mục hoàn thành',
+      message: 'Hạng mục "Đổ bê tông móng" đã được hoàn thành thành công',
+      timestamp: '6 giờ trước',
+      read: true,
+      action: {
+        label: 'Xem hạng mục',
+        href: '/dashboard/projects/1/work-items'
+      }
+    },
+    {
+      id: '4',
+      type: 'error',
+      title: 'Lỗi hệ thống',
+      message: 'Có lỗi xảy ra khi tải dữ liệu dự án. Vui lòng thử lại.',
+      timestamp: '1 ngày trước',
+      read: true
     }
-  },
-  {
-    id: '2',
-    type: 'info',
-    title: 'Deadline sắp tới',
-    message: '3 dự án có deadline trong 7 ngày tới',
-    timestamp: '15 phút trước',
-    isRead: false,
-    action: {
-      label: 'Xem lịch',
-      onClick: () => {} // TODO: Implement view calendar
+  ];
+
+  const unreadCount = mockNotifications.filter(n => !n.read).length;
+  const displayNotifications = mockNotifications.slice(0, maxItems);
+
+  const getIcon = (type: Notification['type']) => {
+    switch (type) {
+      case 'success':
+        return <CheckCircle className="h-4 w-4 text-green-600" />;
+      case 'error':
+        return <AlertTriangle className="h-4 w-4 text-red-600" />;
+      case 'warning':
+        return <AlertTriangle className="h-4 w-4 text-yellow-600" />;
+      case 'info':
+        return <Info className="h-4 w-4 text-blue-600" />;
+      default:
+        return <Info className="h-4 w-4 text-gray-600" />;
     }
-  },
-  {
-    id: '3',
-    type: 'success',
-    title: 'Dự án hoàn thành',
-    message: 'Dự án "Cải tạo nhà xưởng" đã hoàn thành đúng hạn',
-    timestamp: '1 giờ trước',
-    isRead: true
-  },
-  {
-    id: '4',
-    type: 'info',
-    title: 'Thành viên mới',
-    message: 'Nguyễn Văn A đã tham gia team',
-    timestamp: '2 giờ trước',
-    isRead: true
-  }
-];
-
-const notificationIcons = {
-  info: Info,
-  warning: AlertTriangle,
-  success: CheckCircle,
-  error: AlertTriangle,
-};
-
-const notificationColors = {
-  info: 'border-blue-200 bg-blue-50 text-blue-800',
-  warning: 'border-yellow-200 bg-yellow-50 text-yellow-800',
-  success: 'border-green-200 bg-green-50 text-green-800',
-  error: 'border-red-200 bg-red-50 text-red-800',
-};
-
-export function SystemNotifications({ 
-  notifications = mockNotifications,
-  onDismiss,
-  onMarkAsRead 
-}: SystemNotificationsProps) {
-  const [localNotifications, setLocalNotifications] = useState(notifications);
-
-  const handleDismiss = (id: string) => {
-    setLocalNotifications(prev => prev.filter(n => n.id !== id));
-    onDismiss?.(id);
   };
 
-  const handleMarkAsRead = (id: string) => {
-    setLocalNotifications(prev => 
-      prev.map(n => n.id === id ? { ...n, isRead: true } : n)
-    );
-    onMarkAsRead?.(id);
+  const getBadgeColor = (type: Notification['type']) => {
+    switch (type) {
+      case 'success':
+        return 'bg-green-100 text-green-800';
+      case 'error':
+        return 'bg-red-100 text-red-800';
+      case 'warning':
+        return 'bg-yellow-100 text-yellow-800';
+      case 'info':
+        return 'bg-blue-100 text-blue-800';
+      default:
+        return 'bg-gray-100 text-gray-800';
+    }
   };
-
-  const unreadCount = localNotifications.filter(n => !n.isRead).length;
 
   return (
-    <Card className="w-full max-w-md">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle className="text-lg flex items-center gap-2">
-            <Bell className="size-5" />
-            Thông báo hệ thống
-            {unreadCount > 0 && (
-              <Badge variant="destructive" className="ml-2">
-                {unreadCount}
-              </Badge>
-            )}
-          </CardTitle>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen}>
+      <DropdownMenuTrigger asChild>
+        <Button variant="outline" size="sm" className="relative">
+          <Bell className="h-4 w-4" />
           {unreadCount > 0 && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => localNotifications.forEach(n => !n.isRead && handleMarkAsRead(n.id))}
-              className="text-xs"
-            >
-              Đánh dấu tất cả đã đọc
-            </Button>
+            <Badge className="absolute -top-1 -right-1 h-5 w-5 flex items-center justify-center p-0 text-xs">
+              {unreadCount}
+            </Badge>
           )}
-        </div>
-      </CardHeader>
-      <CardContent className="space-y-3 max-h-96 overflow-y-auto">
-        {localNotifications.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <Bell className="size-8 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">Không có thông báo mới</p>
-          </div>
-        ) : (
-          localNotifications.map((notification) => {
-            const Icon = notificationIcons[notification.type];
-            const colorClass = notificationColors[notification.type];
-            
-            return (
-              <Alert 
-                key={notification.id} 
-                className={`relative ${colorClass} ${!notification.isRead ? 'ring-2 ring-blue-200' : ''}`}
-              >
-                <div className="flex items-start gap-3">
-                  <Icon className="size-4 mt-0.5 flex-shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-sm">{notification.title}</p>
-                        <p className="text-xs mt-1 opacity-90">{notification.message}</p>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-xs opacity-70">{notification.timestamp}</span>
-                          {!notification.isRead && (
-                            <Badge variant="secondary" className="text-xs px-1 py-0">
-                              Mới
-                            </Badge>
-                          )}
-                        </div>
-                        {notification.action && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={notification.action.onClick}
-                            className="mt-2 h-6 px-2 text-xs"
-                          >
-                            {notification.action.label}
-                          </Button>
-                        )}
-                      </div>
-                      <div className="flex gap-1 ml-2">
-                        {!notification.isRead && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleMarkAsRead(notification.id)}
-                            className="h-6 w-6 p-0"
-                          >
-                            <CheckCircle className="size-3" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDismiss(notification.id)}
-                          className="h-6 w-6 p-0"
-                        >
-                          <X className="size-3" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-80">
+        <Card className="border-0 shadow-none">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm">Thông báo</CardTitle>
+            <CardDescription className="text-xs">
+              {unreadCount > 0 ? `${unreadCount} thông báo chưa đọc` : 'Tất cả thông báo đã được đọc'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="max-h-80 overflow-y-auto">
+              {displayNotifications.length === 0 ? (
+                <div className="text-center py-6 text-gray-500">
+                  <Bell className="h-8 w-8 mx-auto mb-2 text-gray-300" />
+                  <p className="text-sm">Không có thông báo nào</p>
                 </div>
-              </Alert>
-            );
-          })
-        )}
-      </CardContent>
-    </Card>
+              ) : (
+                <div className="space-y-1">
+                  {displayNotifications.map((notification) => (
+                    <DropdownMenuItem
+                      key={notification.id}
+                      className="p-3 cursor-pointer hover:bg-gray-50"
+                      onClick={() => {
+                        if (notification.action) {
+                          window.location.href = notification.action.href;
+                        }
+                      }}
+                    >
+                      <div className="flex items-start space-x-3 w-full">
+                        <div className="flex-shrink-0 mt-0.5">
+                          {getIcon(notification.type)}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {notification.title}
+                            </p>
+                            {!notification.read && (
+                              <div className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0"></div>
+                            )}
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+                            {notification.message}
+                          </p>
+                          <div className="flex items-center justify-between mt-2">
+                            <span className="text-xs text-gray-400">
+                              {notification.timestamp}
+                            </span>
+                            <Badge className={`text-xs ${getBadgeColor(notification.type)}`}>
+                              {notification.type}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
 // Compact version for header
 export function SystemNotificationsCompact() {
-  const [isOpen, setIsOpen] = useState(false);
-  const unreadCount = mockNotifications.filter(n => !n.isRead).length;
-
-  return (
-    <div className="relative">
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => setIsOpen(!isOpen)}
-        className="relative"
-      >
-        <Bell className="size-4" />
-        {unreadCount > 0 && (
-          <Badge 
-            variant="destructive" 
-            className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center text-xs"
-          >
-            {unreadCount}
-          </Badge>
-        )}
-      </Button>
-      
-      {isOpen && (
-        <>
-          {/* Backdrop */}
-          <div 
-            className="fixed inset-0 z-40" 
-            onClick={() => setIsOpen(false)}
-          />
-          
-          {/* Dropdown */}
-          <div className="absolute right-0 top-full mt-2 z-50 w-96 max-w-[calc(100vw-2rem)]">
-            <SystemNotifications />
-          </div>
-        </>
-      )}
-    </div>
-  );
+  return <SystemNotifications maxItems={3} />;
 }

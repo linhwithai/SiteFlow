@@ -108,13 +108,13 @@ export class RateLimiter {
     if (entry.count >= this.config.maxRequests) {
       const retryAfter = Math.ceil((entry.resetTime - now) / 1000);
       
-      logger.warn('Rate limit exceeded', {
+      logger.warn('Rate limit exceeded', { 
         identifier,
         key,
         count: entry.count,
         maxRequests: this.config.maxRequests,
         retryAfter,
-      });
+       });
 
       return {
         allowed: false,
@@ -131,13 +131,13 @@ export class RateLimiter {
     // Clean up old entries periodically
     this.cleanup();
 
-    logger.debug('Rate limit check passed', {
+    logger.debug('Rate limit check passed', { 
       identifier,
       key,
       count: entry.count,
       maxRequests: this.config.maxRequests,
       remaining: this.config.maxRequests - entry.count,
-    });
+     });
 
     return {
       allowed: true,
@@ -156,7 +156,7 @@ export class RateLimiter {
 
     this.store.delete(key);
     
-    logger.info('Rate limit reset', { identifier, key });
+    logger.info('Rate limit reset', {  identifier, key  });
   }
 
   /**
@@ -200,9 +200,9 @@ export class RateLimiter {
     expiredKeys.forEach(key => this.store.delete(key));
 
     if (expiredKeys.length > 0) {
-      logger.debug('Cleaned up expired rate limit entries', {
+      logger.debug('Cleaned up expired rate limit entries', { 
         count: expiredKeys.length,
-      });
+       });
     }
   }
 

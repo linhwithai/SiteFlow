@@ -43,7 +43,7 @@ export function ProjectOverview({
 }: ProjectOverviewProps) {
   // Calculate project progress based on actual data
   const calculateProgress = () => {
-    if (!project.startDate || !project.endDate) return 0;
+    if (!project || !project.startDate || !project.endDate) return 0;
     
     const start = new Date(project.startDate);
     const end = new Date(project.endDate);
@@ -61,7 +61,7 @@ export function ProjectOverview({
   const progress = calculateProgress();
   
   const calculateDays = () => {
-    if (!project.startDate || !project.endDate) return { daysElapsed: 0, daysRemaining: 0 };
+    if (!project || !project.startDate || !project || !project.endDate) return { daysElapsed: 0, daysRemaining: 0 };
     
     const start = new Date(project.startDate);
     const end = new Date(project.endDate);
@@ -81,7 +81,7 @@ export function ProjectOverview({
 
   // Calculate weekly progress based on actual data
   const calculateWeeklyProgress = () => {
-    if (!project.startDate || !project.endDate) return [];
+    if (!project || !project.startDate || !project || !project.endDate) return [];
     
     const start = new Date(project.startDate);
     const end = new Date(project.endDate);

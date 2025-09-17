@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, FileTextIcon, PlusIcon } from 'lucide-react';
+import { ArrowLeft, FileTextIcon, PlusIcon, Calendar, BarChart3 } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -211,10 +211,18 @@ export default function ProjectWorkItemsPage() {
             </p>
           </div>
         </div>
-        <Button onClick={() => handleCreateWorkItem({ workItemTitle: 'Hạng mục mới', workItemType: 'concrete_work' })} className="flex items-center gap-2">
-          <PlusIcon className="h-4 w-4" />
-          Thêm hạng mục
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href={`/dashboard/projects/${project.id}/work-items/schedule`}>
+            <Button variant="outline" className="flex items-center gap-2">
+              <Calendar className="h-4 w-4" />
+              Bảng tiến độ
+            </Button>
+          </Link>
+          <Button onClick={() => handleCreateWorkItem({ workItemTitle: 'Hạng mục mới', workItemType: 'concrete_work' })} className="flex items-center gap-2">
+            <PlusIcon className="h-4 w-4" />
+            Thêm hạng mục
+          </Button>
+        </div>
       </div>
 
       {/* Work Items Stats */}

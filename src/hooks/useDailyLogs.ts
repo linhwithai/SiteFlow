@@ -203,7 +203,7 @@ export function useDailyLogs({ projectId, autoFetch = true }: UseDailyLogsOption
       projectId,
       organizationId: 'org_demo_1',
       title: data.title,
-      logDate: data.logDate,
+      logDate: new Date(data.logDate),
       weather: data.weather,
       temperature: data.temperature,
       workDescription: data.workDescription,
